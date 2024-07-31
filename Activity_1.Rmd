@@ -1,0 +1,10 @@
+---
+title: "Activity_1"
+output: html_document
+date: "2024-07-31"
+---
+```{r}
+setwd("D:/APCS/2023-2024/Semester 3/STAT/FINAL_PROJECT")
+
+```
+
