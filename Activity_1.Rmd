@@ -4,7 +4,10 @@ output: html_document
 date: "2024-07-31"
 ---
 ```{r}
-setwd("D:/APCS/2023-2024/Semester 3/STAT/FINAL_PROJECT")
 
+data <- read.csv("auto_mpg.csv", header = TRUE, sep = ",")
+attach(data)
+head(data)
+dim(data)
 ```
 
