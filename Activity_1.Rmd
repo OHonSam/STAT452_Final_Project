@@ -4,10 +4,43 @@ output: html_document
 date: "2024-07-31"
 ---
 ```{r}
-
-data <- read.csv("auto_mpg.csv", header = TRUE, sep = ",")
+data <- read.csv("auto_mpg.csv", header = TRUE, sep = ";")
 attach(data)
 head(data)
 dim(data)
 ```
+
+```{r}
+# Replace "?" with NA in the horsepower column
+data$horsepower[data$horsepower == "?"] <- NA
+```
+
+```{r}
+# Convert horsepower to numeric (it was read as a factor due to "?")
+data$horsepower <- as.numeric(as.character(data$horsepower))
+```
+
+```{r}
+
+# Check for missing values
+missing_values <- sapply(data, function(x) sum(is.na(x)))
+print(missing_values)
+```
+
+```{r}
+# Handle missing values in the 'horsepower' column
+
+# Option 1: Remove rows with missing values
+data_clean <- na.omit(data)
+# Reasons:
+# - The 'horsepower' column has only 6 missing values, so removing them will not affect the dataset significantly.
+# - It avoids the risk of introducing bias or inaccuracies that might occur when estimating missing values.
+
+# Option 2: Replace missing values with the mean (or median) of the column
+# data$horsepower[is.na(data$horsepower)] <- mean(data$horsepower, na.rm = TRUE)
+```
+
+
+
+
 

@@ -355,18 +355,46 @@ display: none;
 </div>
 
 
-<pre class="r"><code>data &lt;- read.csv(&quot;auto_mpg.csv&quot;, header = TRUE, sep = &quot;,&quot;)
+<pre class="r"><code>data &lt;- read.csv(&quot;auto_mpg.csv&quot;, header = TRUE, sep = &quot;;&quot;)
 attach(data)
 head(data)</code></pre>
-<pre><code>##   mgp.cylinders.displacement.horsepower.weight.acceleration.model_year.origin.car_name
-## 1                                18;8;307;130.0;3504;12;70;1;chevrolet chevelle malibu
-## 2                                      15;8;350;165.0;3693;11.5;70;1;buick skylark 320
-## 3                                       18;8;318;150.0;3436;11;70;1;plymouth satellite
-## 4                                            16;8;304;150.0;3433;12;70;1;amc rebel sst
-## 5                                            17;8;302;140.0;3449;10.5;70;1;ford torino
-## 6                                         15;8;429;198.0;4341;10;70;1;ford galaxie 500</code></pre>
+<pre><code>##   mgp cylinders displacement horsepower weight acceleration model_year origin
+## 1  18         8          307      130.0   3504         12.0         70      1
+## 2  15         8          350      165.0   3693         11.5         70      1
+## 3  18         8          318      150.0   3436         11.0         70      1
+## 4  16         8          304      150.0   3433         12.0         70      1
+## 5  17         8          302      140.0   3449         10.5         70      1
+## 6  15         8          429      198.0   4341         10.0         70      1
+##                    car_name
+## 1 chevrolet chevelle malibu
+## 2         buick skylark 320
+## 3        plymouth satellite
+## 4             amc rebel sst
+## 5               ford torino
+## 6          ford galaxie 500</code></pre>
 <pre class="r"><code>dim(data)</code></pre>
-<pre><code>## [1] 398   1</code></pre>
+<pre><code>## [1] 398   9</code></pre>
+<pre class="r"><code># Replace &quot;?&quot; with NA in the horsepower column
+data$horsepower[data$horsepower == &quot;?&quot;] &lt;- NA</code></pre>
+<pre class="r"><code># Convert horsepower to numeric (it was read as a factor due to &quot;?&quot;)
+data$horsepower &lt;- as.numeric(as.character(data$horsepower))</code></pre>
+<pre class="r"><code># Check for missing values
+missing_values &lt;- sapply(data, function(x) sum(is.na(x)))
+print(missing_values)</code></pre>
+<pre><code>##          mgp    cylinders displacement   horsepower       weight acceleration 
+##            0            0            0            6            0            0 
+##   model_year       origin     car_name 
+##            0            0            0</code></pre>
+<pre class="r"><code># Handle missing values in the &#39;horsepower&#39; column
+
+# Option 1: Remove rows with missing values
+data_clean &lt;- na.omit(data)
+# Reasons:
+# - The &#39;horsepower&#39; column has only 6 missing values, so removing them will not affect the dataset significantly.
+# - It avoids the risk of introducing bias or inaccuracies that might occur when estimating missing values.
+
+# Option 2: Replace missing values with the mean (or median) of the column
+# data$horsepower[is.na(data$horsepower)] &lt;- mean(data$horsepower, na.rm = TRUE)</code></pre>
 
 
 
