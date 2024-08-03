@@ -13,6 +13,7 @@ library(MASS)
 library(corrplot)
 library(reshape2)
 library(faraway)
+library(caret)
 ```
 
 ## 1. Import and clean data
@@ -211,7 +212,7 @@ best_lambda <- lambda[which.max(log_likelihood)]
 print(best_lambda)
 ```
 ```{r}
-best_lambda <- -0.25
+best_lambda <- -0.2
 ```
 
 ```{r}
@@ -237,3 +238,59 @@ curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRU
 qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
 qqline(hist_residuals, col = "red")
 ```
+### 6. Prediction
+```{r}
+predictions <- predict(model_cox, newdata = data_test, type = "response")
+# # Metrics
+# actuals <- (data_test$mgp^best_lambda - 1) / best_lambda
+# mae <- mean(abs(predictions - actuals))
+# mse <- mean((predictions - actuals)^2)
+# rmse <- sqrt(mse)
+# print(c("MAE" = mae, "MSE" = mse, "RMSE" = rmse))
+# 
+# res <- (rmse) / (max(data_test$mgp) - min(data_test$mgp))
+# res
+```
+
+```{r}
+# summary(model_cox)
+```
+
+## 7. Evaluation
+Using cross validation k-folds
+```{r}
+set.seed(1)
+# Define a train control with k-fold cross-validation
+train_control <- trainControl(method = "cv", number = 10)  # 10-fold cross-validation
+
+# Define the formula for the model
+formula <- as.formula(paste0("((mgp^", best_lambda, " - 1)/", best_lambda, ") ~ weight + model_year + origin"))
+
+# Train the model using the training data
+cv_model <- train(formula, data = data_train, method = "lm", trControl = train_control)
+
+# Print the summary of the cross-validated model
+print(cv_model)
+```
+```{r}
+# Predict using the cross-validated model on the test data
+predictions <- predict(cv_model, newdata = data_test)
+
+# Calculate performance metrics on the test data
+actual_values <- (data_test$mgp^best_lambda - 1) / best_lambda
+results <- data.frame(
+  Actual = actual_values,
+  Predicted = predictions
+)
+
+# Print the results
+# print(results)
+
+# Calculate and print RMSE and R-squared
+rmse <- sqrt(mean((results$Actual - results$Predicted)^2))
+r_squared <- cor(results$Actual, results$Predicted)^2
+
+cat("RMSE:", rmse, "\n")
+cat("R-squared:", r_squared, "\n")
+```
+
