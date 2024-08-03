@@ -8,7 +8,13 @@ date: "2024-07-31"
 library(dplyr)
 library(ggplot2)
 library(tidyr)
+library(car)
+library(MASS)
+library(corrplot)
+library(reshape2)
 ```
+
+## 1. Import and clean data
 
 ```{r}
 data <- read.csv("auto_mpg.csv", header = TRUE, sep = ";")
@@ -49,7 +55,7 @@ data_clean <- na.omit(data)
 
 ```{r}
 # remove car_name column in data_clean
-data_clean <- select(data_clean, -car_name)
+data_clean <- dplyr::select(data_clean, -car_name)
 str(data_clean)
 ```
 
@@ -69,5 +75,83 @@ data_clean %>%
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
+As the data has almost no outliers, then we don't need to process them.
 
+## 2. Split data to train and test
+```{r}
+set.seed(1)
+sample_size <- floor(0.8 * nrow(data_clean))
+train_indices <- sample(seq_len(nrow(data_clean)), size = sample_size)
+data_train <- data_clean[train_indices, ]
+data_test <- data_clean[-train_indices, ]
+```
+
+## 3. Build model
+```{r}
+model1 <- lm(mgp ~. , data = data_train)
+summary(model1)
+```
+```{r}
+vif(model1)
+```
+We consider correlation matrix
+```{r}
+cor_matrix <- cor(data_train)
+cor_matrix
+```
+heat map:
+```{r}
+corrplot(cor_matrix, method = "color", type = "upper", 
+         tl.col = "black", tl.srt = 45, addCoef.col = "black")
+
+# Convert the correlation matrix to long format for ggplot2
+cor_matrix_melted <- melt(cor_matrix)
+
+# Visualize with ggplot2
+ggplot(data = cor_matrix_melted, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1, 1), space = "Lab", 
+                       name = "Correlation") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   size = 12, hjust = 1)) +
+  coord_fixed()
+```
+We can see that vif of displacement is high (21.407632). Then, we will remove it from the model.
+
+```{r}
+model1 <- lm(mgp ~ . -displacement, data = data_train)
+summary(model1)
+```
+```{r}
+vif(model1)
+```
+
+
+We can see that vif of weight variable is the highest (8.4456). We would first consider remove weight variable.
+
+```{r}
+model1 <- lm(mgp ~ . -displacement -weight, data = data_train)
+summary(model1)
+```
+After removing weight variable, we see that the adjusted R-squared decreases significantly. Thus, we try removing the second highest vif which is horsepower variable.
+
+```{r}
+model1 <- lm(mgp ~ . -displacement -horsepower, data = data_train)
+summary(model1)
+```
+
+```{r}
+vif(model1)
+```
+removing cylinders
+
+```{r}
+model1 <- lm(mgp ~ . -displacement -horsepower -cylinders, data = data_train)
+summary(model1)
+```
+```{r}
+vif(model1)
+```
 
