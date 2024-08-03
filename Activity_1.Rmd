@@ -3,6 +3,13 @@ title: "Activity_1"
 output: html_document
 date: "2024-07-31"
 ---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+```
+
 ```{r}
 data <- read.csv("auto_mpg.csv", header = TRUE, sep = ";")
 attach(data)
@@ -40,7 +47,27 @@ data_clean <- na.omit(data)
 # data$horsepower[is.na(data$horsepower)] <- mean(data$horsepower, na.rm = TRUE)
 ```
 
+```{r}
+# remove car_name column in data_clean
+data_clean <- select(data_clean, -car_name)
+str(data_clean)
+```
 
+
+```{r}
+data_clean %>%
+  gather(key = "variable", value = "value") %>%
+  ggplot(aes(x = value)) +
+  facet_wrap(~ variable, scales = "free") +
+  geom_histogram(bins = 30) +
+  theme_minimal()
+data_clean %>%
+  gather(key = "variable", value = "value") %>%
+  ggplot(aes(x = variable, y = value)) +
+  geom_boxplot() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
 
 
 
