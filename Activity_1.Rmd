@@ -12,6 +12,7 @@ library(car)
 library(MASS)
 library(corrplot)
 library(reshape2)
+library(faraway)
 ```
 
 ## 1. Import and clean data
@@ -87,6 +88,7 @@ data_test <- data_clean[-train_indices, ]
 ```
 
 ## 3. Build model
+### Check multicolinearity
 ```{r}
 model1 <- lm(mgp ~. , data = data_train)
 summary(model1)
@@ -154,4 +156,84 @@ summary(model1)
 ```{r}
 vif(model1)
 ```
+### Variable selection
+```{r}
+modFull = lm(mgp ~ ., data = data_train)
+modZero = lm(mgp ~ 1, data = data_train)
+modInter = lm(mgp ~ weight + model_year, data = data_train)
+```
 
+```{r}
+model2 = MASS::stepAIC(modInter, direction = "both", scope = list(lower = modZero, upper = modFull), k = 2)
+```
+
+```{r}
+model3 = MASS::stepAIC(modInter, direction = "both", scope = list(lower = modZero, upper = modFull), k = log(nrow(data_train)))
+```
+
+## 4. Hypothesis testing
+```{r}
+summary(model2)
+summary(model3)
+anova(model2, model3)
+```
+blabla, choose model3
+
+### Test for normality
+```{r}
+# Use Shapiro-Wilk test to test for normality of the residuals
+shapiro.test(residuals(model3))
+
+# Plot residuals to visually check for normality
+par(mfrow=c(1,2))
+
+hist_residuals <- residuals(model3)
+hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 100, probability = TRUE)
+
+mean_residuals <- mean(hist_residuals)
+sd_residuals <- sd(hist_residuals)
+curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
+
+qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
+qqline(hist_residuals, col = "red")
+```
+
+### Box-Cox
+```{r}
+boxcox_result <- boxcox(model3, plotit = TRUE)
+lambda <- boxcox_result$x
+log_likelihood <- boxcox_result$y
+
+# Find the lambda with the maximum log-likelihood
+best_lambda <- lambda[which.max(log_likelihood)]
+
+# Print the best lambda
+print(best_lambda)
+```
+```{r}
+best_lambda <- -0.25
+```
+
+```{r}
+model_cox = lm((((mgp^best_lambda) - 1)/best_lambda) ~ weight + model_year + origin)
+summary(model_cox)
+```
+
+### Test for normality
+```{r}
+# Use Shapiro-Wilk test to test for normality of the residuals
+shapiro.test(residuals(model_cox))
+
+# Plot residuals to visually check for normality
+par(mfrow=c(1,2))
+
+hist_residuals <- residuals(model_cox)
+hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 100, probability = TRUE)
+
+mean_residuals <- mean(hist_residuals)
+sd_residuals <- sd(hist_residuals)
+curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
+
+qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
+qqline(hist_residuals, col = "red")
+```
