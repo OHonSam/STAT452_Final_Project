@@ -14,6 +14,7 @@ library(corrplot)
 library(reshape2)
 library(faraway)
 library(caret)
+library(lmtest)
 ```
 
 ## 1. Import and clean data
@@ -212,12 +213,16 @@ best_lambda <- lambda[which.max(log_likelihood)]
 print(best_lambda)
 ```
 ```{r}
-best_lambda <- -0.2
+best_lambda <- -1
 ```
 
 ```{r}
+best_lambda = 0.1
 model_cox = lm((((mgp^best_lambda) - 1)/best_lambda) ~ weight + model_year + origin)
 summary(model_cox)
+shapiro.test(residuals(model_cox))
+bp_test <- bptest(model_cox)
+print(bp_test)
 ```
 
 ### Test for normality
@@ -238,8 +243,68 @@ curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRU
 qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
 qqline(hist_residuals, col = "red")
 ```
-### 6. Prediction
 ```{r}
+# Add all interaction variables that's possible
+square_cylinder = data_train$cylinders^2
+square_displacement = data_train$displacement^2
+square_horsepower = data_train$horsepower^2
+square_weight = data_train$weight^2
+square_acceleration = data_train$acceleration^2
+square_model_year = data_train$model_year^2
+square_origin = data_train$origin^2
+inter_cylinder_displacement = data_train$cylinders * data_train$displacement
+inter_cylinder_horsepower = data_train$cylinders * data_train$horsepower
+inter_cylinder_weight = data_train$cylinders * data_train$weight
+inter_cylinder_model_year = data_train$cylinders * data_train$model_year
+inter_cylinder_origin = data_train$cylinders * data_train$origin
+inter_displacement_horsepower = data_train$displacement * data_train$horsepower
+inter_displacement_weight = data_train$displacement * data_train$weight
+inter_displacement_acceleration = data_train$displacement * data_train$acceleration
+inter_displacement_model_year = data_train$displacement * data_train$model_year
+inter_displacement_origin = data_train$displacement * data_train$origin
+inter_horsepower_weight = data_train$horsepower * data_train$weight
+inter_horsepower_acceleration = data_train$horsepower * data_train$acceleration
+inter_horsepower_model_year = data_train$horsepower * data_train$model_year
+inter_horsepower_origin = data_train$horsepower * data_train$origin
+inter_weight_acceleration = data_train$weight * data_train$acceleration
+inter_weight_model_year = data_train$weight * data_train$model_year
+model_test <- lm(mgp ~ . + square_cylinder + square_displacement + square_horsepower + square_weight + square_acceleration + square_model_year + square_origin + inter_cylinder_displacement + inter_cylinder_horsepower + inter_cylinder_weight + inter_cylinder_model_year + inter_cylinder_origin + inter_displacement_horsepower + inter_displacement_weight + inter_displacement_acceleration + inter_displacement_model_year + inter_displacement_origin + inter_horsepower_weight + inter_horsepower_acceleration + inter_horsepower_model_year + inter_horsepower_origin + inter_weight_acceleration + inter_weight_model_year, data = data_train)
+summary(model_test)
+```
+```{r}
+stepwise_model = step(model_test, direction = "both")
+summary(stepwise_model)
+```
+```{r}
+final = lm(mgp ~ displacement + horsepower + model_year + square_cylinder  + square_acceleration + square_model_year +inter_cylinder_weight +  inter_displacement_model_year + inter_displacement_origin + inter_horsepower_acceleration +inter_weight_model_year, data = data_train)
+boxcox_result <- boxcox(final, plotit = TRUE)
+lambda <- boxcox_result$x
+log_likelihood <- boxcox_result$y
+
+# Find the lambda with the maximum log-likelihood
+best_lambda <- lambda[which.max(log_likelihood)]
+
+best_lambda = 0.041
+model_cox = lm((((mgp^best_lambda) - 1)/best_lambda) ~ displacement + horsepower + model_year + square_cylinder  + square_acceleration + square_model_year +inter_cylinder_weight +  inter_displacement_model_year + inter_displacement_origin + inter_horsepower_acceleration + inter_horsepower_origin +inter_weight_model_year, data = data_train )
+summary(model_cox)
+shapiro.test(residuals(model_cox))
+# Perform the Breusch-Pagan test
+bp_test <- bptest(model_cox)
+print(bp_test)
+```
+
+```{r}
+### 6. Prediction
+square_cylinder = data_test$cylinders^2
+square_acceleration = data_test$acceleration^2
+square_model_year = data_test$model_year^2
+square_origin = data_test$origin^2
+inter_cylinder_weight = data_test$cylinders * data_test$weight
+inter_displacement_model_year = data_test$displacement * data_test$model_year
+inter_displacement_origin = data_test$displacement * data_test$origin
+inter_horsepower_acceleration = data_test$horsepower * data_test$acceleration
+inter_horsepower_origin = data_test$horsepower * data_test$origin
+inter_weight_model_year = data_test$weight * data_test$model_year
 predictions <- predict(model_cox, newdata = data_test, type = "response")
 # # Metrics
 # actuals <- (data_test$mgp^best_lambda - 1) / best_lambda
@@ -284,13 +349,11 @@ results <- data.frame(
 )
 
 # Print the results
-# print(results)
+print(results)
 
 # Calculate and print RMSE and R-squared
 rmse <- sqrt(mean((results$Actual - results$Predicted)^2))
 r_squared <- cor(results$Actual, results$Predicted)^2
-
 cat("RMSE:", rmse, "\n")
 cat("R-squared:", r_squared, "\n")
 ```
-
