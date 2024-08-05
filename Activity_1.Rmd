@@ -55,12 +55,26 @@ data_clean <- na.omit(data)
 ```
 
 ```{r}
+# Check duplicate
+# Identify duplicate rows based on all columns
+duplicates <- duplicated(data_clean)
+print(data_clean[duplicates, ])
+
+# Identify duplicate rows based on a specific column
+duplicates_ID <- duplicated(data_clean$ID)
+print(data_clean[duplicates_ID, ])
+```
+There is no duplicate value.
+
+```{r}
 # remove car_name column in data_clean
 data_clean <- dplyr::select(data_clean, -car_name)
 str(data_clean)
+detach(data)
+attach(data_clean)
 ```
 
-
+### Descriptive statistic
 ```{r}
 # Visualize the dataset
 data_clean %>%
@@ -79,6 +93,79 @@ data_clean %>%
 
 As the data has almost no outliers, then we don't need to process them.
 
+```{r}
+summary(data_clean)
+```
+
+```{r}
+pie(table(origin))
+barplot(table(origin))
+```
+```{r}
+pie(table(model_year))
+```
+```{r}
+pie(table(cylinders))
+barplot(table(cylinders))
+```
+
+The product from North American accounted for the highest percentage while the others (Europe, Asia) accounted for equally percentage.
+
+model_year distribution is approximately distributed equally through years.
+
+```{r}
+hist(mgp, breaks = 50)
+```
+The mgp distribution is right skewed. Hence, we process this by taking log(mgp)^2
+
+```{r}
+log_mgp_square = (log10(data_clean$mgp))^2
+data_clean$log_mgp_square <- log_mgp_square
+hist(log_mgp_square, breaks = 25)
+```
+
+
+```{r}
+boxplot(log_mgp_square ~ origin)
+```
+The highest mgp consumption coming from Asia countries while the lowest one coming from North America. It indicates that the engines from North America might be better than the other areas.
+
+```{r}
+boxplot(log_mgp_square ~ model_year)
+```
+There is a rising trend of mgp through out the period from 1970 to 1982.
+
+```{r}
+boxplot(log_mgp_square ~ cylinders)
+boxplot(horsepower ~ cylinders, data = data_clean)
+```
+Overall, engines having more cylinders seems to be stronger while consuming less fuel.
+
+```{r}
+boxplot(displacement ~ cylinders)
+```
+The engines having more cylinders seem to have larger displacement.
+
+```{r}
+plot(log_mgp_square ~ horsepower)
+plot(log_mgp_square ~ displacement)
+plot(log_mgp_square ~ weight)
+plot(log_mgp_square ~ acceleration)
+```
+Overall, there is a correlation between mgp and horsepower, displacement, weight while there is no correlation between mgp and acceleration.
+
+### Create dummy variable
+```{r}
+# Create dummy variables for 'origin' column
+data_clean$north_american <- ifelse(data_clean$origin == 1, 1, 0)
+data_clean$europe <- ifelse(data_clean$origin == 2, 1, 0)
+data_clean$origin <- NULL
+```
+
+```{r}
+str(data_clean)
+```
+
 ## 2. Split data to train and test
 ```{r}
 set.seed(1)
@@ -86,12 +173,14 @@ sample_size <- floor(0.8 * nrow(data_clean))
 train_indices <- sample(seq_len(nrow(data_clean)), size = sample_size)
 data_train <- data_clean[train_indices, ]
 data_test <- data_clean[-train_indices, ]
+detach(data_clean)
+attach(data_train)
 ```
 
 ## 3. Build model
 ### Check multicolinearity
 ```{r}
-model1 <- lm(mgp ~. , data = data_train)
+model1 <- lm(log_mgp_square ~. -mgp, data = data_train)
 summary(model1)
 ```
 
@@ -124,12 +213,18 @@ ggplot(data = cor_matrix_melted, aes(x = Var1, y = Var2, fill = value)) +
                                    size = 12, hjust = 1)) +
   coord_fixed()
 ```
-After reviewing the correlation matrix and calculating VIF values for each predictor, we observe that the 'displacement' variable has the highest VIF value (21.407632). A high VIF value indicates a strong correlation with other predictor variables, suggesting multicollinearity, which can inflate the variance of coefficient estimates and make the model unstable.
+After reviewing the correlation matrix and calculating VIF values for each predictor, we observe that the 'displacement' variable has the highest VIF value (22.109484). A high VIF value indicates a strong correlation with other predictor variables, suggesting multicollinearity, which can inflate the variance of coefficient estimates and make the model unstable.
+
+```{r}
+model_displacement <- lm(displacement ~ . -mgp -log_mgp_square, data = data_train)
+summary(model_displacement)
+```
+The R-squared = 0.9548. Moreover, there are strong correlation among displacement towards cylinders, horsepower, weight, acceleration, and north_american.
 
 To address multicollinearity and improve the model's stability, we will remove the 'displacement' variable from the model.
 
 ```{r}
-model1 <- lm(mgp ~ . -displacement, data = data_train)
+model1 <- lm(log_mgp_square ~ . -mgp -displacement, data = data_train)
 summary(model1)
 ```
 
@@ -138,23 +233,27 @@ vif(model1)
 ```
 
 
-We observe that 'weight' variable has the highest VIF value this time (8.4456). We try removing 'weight' variable and see if that helps.
+We observe that 'weight' variable has the highest VIF value this time (8.462281). We try removing 'weight' variable and see if that helps.
 
 ```{r}
-model1 <- lm(mgp ~ . -displacement -weight, data = data_train)
+model1 <- lm(log_mgp_square ~ . -mgp -displacement -weight, data = data_train)
 summary(model1)
 ```
 
-
-After removing 'weight' variable, the adjusted R-squared decreases significantly from 0.8079 to 0.762. Thus, we try removing predictor having the second highest VIF value (8.181615) which is 'horsepower' variable.
+After removing 'weight' variable, the adjusted R-squared decreases significantly from 0.8606 to 0.8173. Thus, we try removing predictor having the second highest VIF value (8.198353) which is 'horsepower' variable.
 
 ```{r}
-model1 <- lm(mgp ~ . -displacement -horsepower, data = data_train)
+model1 <- lm(log_mgp_square ~ . -mgp -displacement -horsepower, data = data_train)
 summary(model1)
 ```
 
+The result of removing 'horsepower' variable is actually way better than the one after removing 'weight' variable through the decrease of residual standard error from 0.1696 to 0.1486 and the climb of adjusted R-squared from 0.8173 to 0.8598.
 
-The result of removing 'horsepower' variable is actually way better than the one after removing 'weight' variable through the decrease of residual standard error by 0.002 and the climb of adjusted R-squared from 0.8079 to 0.8082. 
+```{r}
+model_horsepower <- lm(horsepower ~ . -mgp -log_mgp_square -displacement, data = data_train)
+summary(model_horsepower)
+```
+The R-squared = 0.878. Moreover, there are strong correlation among horsepower towards cylinders, weight, acceleration, model_year, and north_american.
 
 ```{r}
 vif(model1)
@@ -163,19 +262,29 @@ vif(model1)
 Since VIF value of 'cylinders' 5.692103, we try removing cylinders to hope for a better result: 
 
 ```{r}
-model1 <- lm(mgp ~ . -displacement -horsepower -cylinders, data = data_train)
+model1 <- lm(log_mgp_square ~ . -mgp -displacement -horsepower -cylinders, data = data_train)
 summary(model1)
 ```
+Before removing 'cylinders' variable, the adjusted R-squared = 0.8598. Then, after removing 'cylinders' variable, the model R-squared climbs significantly to 0.8602. Hence, we consider removing this variable.
+
+```{r}
+model_cylinders <- lm(cylinders ~ . -mgp -log_mgp_square -displacement -horsepower, data = data_train)
+summary(model_cylinders)
+```
+The R-squared = 0.8287. Moreover, there are strong correlation among cylinders towards weight, acceleration, and north_american.
+
+Therefore, we decide to remove 'cylinders' predictor variable due to collinearity.
 
 ```{r}
 vif(model1)
 ```
+The vif values of remaining predictor are less than 5. Hence, there is unlikely collinearity among variables.
 
 ### Variable selection
 ```{r}
-modFull = lm(mgp ~ ., data = data_train)
-modZero = lm(mgp ~ 1, data = data_train)
-modInter = lm(mgp ~ weight + model_year, data = data_train)
+modFull = lm(log_mgp_square ~ . -mgp -displacement -horsepower -cylinders, data = data_train)
+modZero = lm(log_mgp_square ~ 1, data = data_train)
+modInter = lm(log_mgp_square ~ weight + model_year, data = data_train)
 ```
 
 ```{r}
@@ -192,7 +301,10 @@ summary(model2)
 summary(model3)
 anova(model2, model3)
 ```
-We use partial fisher test to compare model2 and model3. As p-value = 0.06318 > $\alpha$ = 0.05, we reject the reduced model, which is model2. The better model would be the full model, which is model3.
+-p_value >< correlation
+-R-square change
+-plot
+=> remove acceleration => model3
 
 ### Test for normality
 ```{r}
@@ -213,6 +325,12 @@ qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
 qqline(hist_residuals, col = "red")
 ```
 
+## studentized Breusch-Pagan test
+```{r}
+bp_test <- bptest(model3)
+print(bp_test)
+```
+
 ### Box-Cox
 ```{r}
 boxcox_result <- boxcox(model3, plotit = TRUE)
@@ -226,126 +344,30 @@ best_lambda <- lambda[which.max(log_likelihood)]
 print(best_lambda)
 ```
 ```{r}
-best_lambda <- -1
+best_lambda <- 0.1
 ```
 
 ```{r}
-best_lambda = 0.1
-model_cox = lm((((mgp^best_lambda) - 1)/best_lambda) ~ weight + model_year + origin)
+best_lambda = 0.5
+model_cox = lm((((data_train$log_mgp_square^best_lambda) - 1)/best_lambda) ~ data_train$weight + data_train$model_year + data_train$north_american)
 summary(model_cox)
 shapiro.test(residuals(model_cox))
 bp_test <- bptest(model_cox)
 print(bp_test)
 ```
-
-### Test for normality
+## 5. Interpretation
 ```{r}
-# Use Shapiro-Wilk test to test for normality of the residuals
-shapiro.test(residuals(model_cox))
-
-# Plot residuals to visually check for normality
-par(mfrow=c(1,2))
-
-hist_residuals <- residuals(model_cox)
-hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 100, probability = TRUE)
-
-mean_residuals <- mean(hist_residuals)
-sd_residuals <- sd(hist_residuals)
-curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
-
-qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
-qqline(hist_residuals, col = "red")
-```
-```{r}
-# Add all interaction variables that's possible
-square_cylinder = data_train$cylinders^2
-square_displacement = data_train$displacement^2
-square_horsepower = data_train$horsepower^2
-square_weight = data_train$weight^2
-square_acceleration = data_train$acceleration^2
-square_model_year = data_train$model_year^2
-square_origin = data_train$origin^2
-inter_cylinder_displacement = data_train$cylinders * data_train$displacement
-inter_cylinder_horsepower = data_train$cylinders * data_train$horsepower
-inter_cylinder_weight = data_train$cylinders * data_train$weight
-inter_cylinder_model_year = data_train$cylinders * data_train$model_year
-inter_cylinder_origin = data_train$cylinders * data_train$origin
-inter_displacement_horsepower = data_train$displacement * data_train$horsepower
-inter_displacement_weight = data_train$displacement * data_train$weight
-inter_displacement_acceleration = data_train$displacement * data_train$acceleration
-inter_displacement_model_year = data_train$displacement * data_train$model_year
-inter_displacement_origin = data_train$displacement * data_train$origin
-inter_horsepower_weight = data_train$horsepower * data_train$weight
-inter_horsepower_acceleration = data_train$horsepower * data_train$acceleration
-inter_horsepower_model_year = data_train$horsepower * data_train$model_year
-inter_horsepower_origin = data_train$horsepower * data_train$origin
-inter_weight_acceleration = data_train$weight * data_train$acceleration
-inter_weight_model_year = data_train$weight * data_train$model_year
-model_test <- lm(mgp ~ . + square_cylinder + square_displacement + square_horsepower + square_weight + square_acceleration + square_model_year + square_origin + inter_cylinder_displacement + inter_cylinder_horsepower + inter_cylinder_weight + inter_cylinder_model_year + inter_cylinder_origin + inter_displacement_horsepower + inter_displacement_weight + inter_displacement_acceleration + inter_displacement_model_year + inter_displacement_origin + inter_horsepower_weight + inter_horsepower_acceleration + inter_horsepower_model_year + inter_horsepower_origin + inter_weight_acceleration + inter_weight_model_year, data = data_train)
-summary(model_test)
-```
-```{r}
-stepwise_model = step(model_test, direction = "both")
-summary(stepwise_model)
-```
-```{r}
-final = lm(mgp ~ displacement + horsepower + model_year + square_cylinder  + square_acceleration + square_model_year +inter_cylinder_weight +  inter_displacement_model_year + inter_displacement_origin + inter_horsepower_acceleration +inter_weight_model_year, data = data_train)
-boxcox_result <- boxcox(final, plotit = TRUE)
-lambda <- boxcox_result$x
-log_likelihood <- boxcox_result$y
-
-# Find the lambda with the maximum log-likelihood
-best_lambda <- lambda[which.max(log_likelihood)]
-
-best_lambda = 0.041
-model_cox = lm((((mgp^best_lambda) - 1)/best_lambda) ~ displacement + horsepower + model_year + square_cylinder  + square_acceleration + square_model_year +inter_cylinder_weight +  inter_displacement_model_year + inter_displacement_origin + inter_horsepower_acceleration + inter_horsepower_origin +inter_weight_model_year, data = data_train )
 summary(model_cox)
-shapiro.test(residuals(model_cox))
-# Perform the Breusch-Pagan test
-bp_test <- bptest(model_cox)
-print(bp_test)
 ```
+### Quantile
 
-## 5. Model Interpretation
+### Coefficent of predictors
 
-### a. Coefficient of predictors
+### Multiple R-squared and Adjusted R-squared
 
-### b. Multiple R-squared
+### Residual standard error
 
-### c. Residual Standard Error
-
-
-## 6. Prediction
-
-```{r}
-
-square_cylinder = data_test$cylinders^2
-square_acceleration = data_test$acceleration^2
-square_model_year = data_test$model_year^2
-square_origin = data_test$origin^2
-inter_cylinder_weight = data_test$cylinders * data_test$weight
-inter_displacement_model_year = data_test$displacement * data_test$model_year
-inter_displacement_origin = data_test$displacement * data_test$origin
-inter_horsepower_acceleration = data_test$horsepower * data_test$acceleration
-inter_horsepower_origin = data_test$horsepower * data_test$origin
-inter_weight_model_year = data_test$weight * data_test$model_year
-predictions <- predict(model_cox, newdata = data_test, type = "response")
-# # Metrics
-# actuals <- (data_test$mgp^best_lambda - 1) / best_lambda
-# mae <- mean(abs(predictions - actuals))
-# mse <- mean((predictions - actuals)^2)
-# rmse <- sqrt(mse)
-# print(c("MAE" = mae, "MSE" = mse, "RMSE" = rmse))
-# 
-# res <- (rmse) / (max(data_test$mgp) - min(data_test$mgp))
-# res
-```
-
-```{r}
-# summary(model_cox)
-```
-
-## 7. Evaluation
+## 6,7. Evaluation
 Using cross validation k-folds
 ```{r}
 set.seed(1)
@@ -353,7 +375,7 @@ set.seed(1)
 train_control <- trainControl(method = "cv", number = 10)  # 10-fold cross-validation
 
 # Define the formula for the model
-formula <- as.formula(paste0("((mgp^", best_lambda, " - 1)/", best_lambda, ") ~ weight + model_year + origin"))
+formula <- as.formula(paste0("((log_mgp_square^", best_lambda, " - 1)/", best_lambda, ") ~ weight + model_year + north_american"))
 
 # Train the model using the training data
 cv_model <- train(formula, data = data_train, method = "lm", trControl = train_control)
@@ -366,7 +388,7 @@ print(cv_model)
 predictions <- predict(cv_model, newdata = data_test)
 
 # Calculate performance metrics on the test data
-actual_values <- (data_test$mgp^best_lambda - 1) / best_lambda
+actual_values <- (data_test$log_mgp_square^best_lambda - 1) / best_lambda
 results <- data.frame(
   Actual = actual_values,
   Predicted = predictions
