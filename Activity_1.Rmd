@@ -1,7 +1,6 @@
 ---
 title: "Activity_1"
 output: html_document
-date: "2024-07-31"
 ---
 
 ```{r setup, include=FALSE}
@@ -64,6 +63,7 @@ str(data_clean)
 
 
 ```{r}
+# Visualize the dataset
 data_clean %>%
   gather(key = "variable", value = "value") %>%
   ggplot(aes(x = value)) +
@@ -95,15 +95,18 @@ data_test <- data_clean[-train_indices, ]
 model1 <- lm(mgp ~. , data = data_train)
 summary(model1)
 ```
+
 ```{r}
 vif(model1)
 ```
+
 We consider correlation matrix
 ```{r}
 cor_matrix <- cor(data_train)
 cor_matrix
 ```
-heat map:
+
+Heat map:
 ```{r}
 corrplot(cor_matrix, method = "color", type = "upper", 
          tl.col = "black", tl.srt = 45, addCoef.col = "black")
@@ -122,7 +125,9 @@ ggplot(data = cor_matrix_melted, aes(x = Var1, y = Var2, fill = value)) +
                                    size = 12, hjust = 1)) +
   coord_fixed()
 ```
-We can see that vif of displacement is high (21.407632). Then, we will remove it from the model.
+After reviewing the correlation matrix and calculating VIF values for each predictor, we observe that the 'displacement' variable has the highest VIF value (21.407632). A high VIF value indicates a strong correlation with other predictor variables, suggesting multicollinearity, which can inflate the variance of coefficient estimates and make the model unstable.
+
+To address multicollinearity and improve the model's stability, we will remove the 'displacement' variable from the model.
 
 ```{r}
 model1 <- lm(mgp ~ . -displacement, data = data_train)
@@ -133,23 +138,29 @@ vif(model1)
 ```
 
 
-We can see that vif of weight variable is the highest (8.4456). We would first consider remove weight variable.
+We observe that 'weight' variable has the highest VIF value this time (8.4456). We try removing 'weight' variable and see if that helps.
 
 ```{r}
 model1 <- lm(mgp ~ . -displacement -weight, data = data_train)
 summary(model1)
 ```
-After removing weight variable, we see that the adjusted R-squared decreases significantly. Thus, we try removing the second highest vif which is horsepower variable.
+
+
+After removing 'weight' variable, the adjusted R-squared decreases significantly from 0.8079 to 0.762. Thus, we try removing predictor having the second highest VIF value (8.181615) which is 'horsepower' variable.
 
 ```{r}
 model1 <- lm(mgp ~ . -displacement -horsepower, data = data_train)
 summary(model1)
 ```
 
+
+The result of removing 'horsepower' variable is actually way better than the one after removing 'weight' variable through the decrease of residual standard error by 0.002 and the climb of adjusted R-squared from 0.8079 to 0.8082. 
+
 ```{r}
 vif(model1)
 ```
-removing cylinders
+
+We try removing cylinders to hope for a better result 
 
 ```{r}
 model1 <- lm(mgp ~ . -displacement -horsepower -cylinders, data = data_train)
