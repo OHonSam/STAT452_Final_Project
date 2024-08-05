@@ -606,7 +606,8 @@ from 0.8079 to 0.8082.</p>
 <pre class="r"><code>vif(model1)</code></pre>
 <pre><code>##    cylinders       weight acceleration   model_year       origin 
 ##     5.692103     5.204414     1.333241     1.153016     1.513448</code></pre>
-<p>We try removing cylinders to hope for a better result</p>
+<p>Since VIF value of ‘cylinders’ 5.692103, we try removing cylinders to
+hope for a better result:</p>
 <pre class="r"><code>model1 &lt;- lm(mgp ~ . -displacement -horsepower -cylinders, data = data_train)
 summary(model1)</code></pre>
 <pre><code>## 
@@ -763,7 +764,10 @@ modInter = lm(mgp ~ weight + model_year, data = data_train)</code></pre>
 ## 2    309 3703.8 -1   -41.345 3.4769 0.06318 .
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-<p>blabla, choose model3</p>
+<p>We use partial fisher test to compare model2 and model3. As p-value =
+0.06318 &gt; <span class="math inline">\(\alpha\)</span> = 0.05, we
+reject the reduced model, which is model2. The better model would be the
+full model, which is model3.</p>
 <div id="test-for-normality" class="section level3">
 <h3>Test for normality</h3>
 <pre class="r"><code># Use Shapiro-Wilk test to test for normality of the residuals
@@ -1682,8 +1686,23 @@ print(bp_test)</code></pre>
 ## 
 ## data:  model_cox
 ## BP = 40.638, df = 12, p-value = 5.631e-05</code></pre>
-<pre class="r"><code>### 6. Prediction
-square_cylinder = data_test$cylinders^2
+</div>
+</div>
+<div id="model-interpretation" class="section level2">
+<h2>5. Model Interpretation</h2>
+<div id="a.-coefficient-of-predictors" class="section level3">
+<h3>a. Coefficient of predictors</h3>
+</div>
+<div id="b.-multiple-r-squared" class="section level3">
+<h3>b. Multiple R-squared</h3>
+</div>
+<div id="c.-residual-standard-error" class="section level3">
+<h3>c. Residual Standard Error</h3>
+</div>
+</div>
+<div id="prediction" class="section level2">
+<h2>6. Prediction</h2>
+<pre class="r"><code>square_cylinder = data_test$cylinders^2
 square_acceleration = data_test$acceleration^2
 square_model_year = data_test$model_year^2
 square_origin = data_test$origin^2
@@ -1704,7 +1723,6 @@ predictions &lt;- predict(model_cox, newdata = data_test, type = &quot;response&
 # res &lt;- (rmse) / (max(data_test$mgp) - min(data_test$mgp))
 # res</code></pre>
 <pre class="r"><code># summary(model_cox)</code></pre>
-</div>
 </div>
 <div id="evaluation" class="section level2">
 <h2>7. Evaluation</h2>

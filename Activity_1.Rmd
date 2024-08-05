@@ -36,7 +36,6 @@ data$horsepower <- as.numeric(as.character(data$horsepower))
 ```
 
 ```{r}
-
 # Check for missing values
 missing_values <- sapply(data, function(x) sum(is.na(x)))
 print(missing_values)
