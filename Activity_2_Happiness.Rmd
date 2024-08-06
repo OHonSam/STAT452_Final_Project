@@ -15,3 +15,250 @@ library(faraway)
 library(caret)
 library(lmtest)
 ```
+## 1. Import and clean data 
+```{r}
+data <- read.csv("world-happiness-report.csv", header = TRUE, sep = ",")
+attach(data)
+str(data)
+head(data)
+```
+
+```{r}
+missing_values <- sapply(data, function(x) sum(is.na(x)))
+print(missing_values)
+```
+
+```{r}
+data_clean <- na.omit(data)
+data_clean <- unique(data_clean)
+dim(data_clean)
+dim(data)
+
+# 1708 / 19
+```
+
+```{r}
+str(data_clean)
+attach(data_clean)
+```
+```{r}
+ggplot(data, aes(y = Freedom.to.make.life.choices)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "...", y = "Freedom")
+
+ggplot(data, aes(y = Life.Ladder)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "...", y = "Ladder")
+
+
+ggplot(data, aes(y = Positive.affect)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "...", y = "Positive")
+
+ggplot(data, aes(y = Negative.affect)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "...", y = "Negative")
+
+ggplot(data, aes(y = Generosity)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "...", y = "Generosity")
+ggplot(data, aes(y = Log.GDP.per.capita)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "...", y = "Log GDP")
+
+ggplot(data, aes(y = Social.support)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "...", y = "Social support")
+
+ggplot(data, aes(y = Healthy.life.expectancy.at.birth)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "...", y = "Healthy life expectancy")
+ggplot(data, aes(y = Perceptions.of.corruption)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "...", y = "Perceptions of corruption")
+```
+```{r}
+model <- lm(Life.Ladder ~ . -Country.name, data = data_clean)
+
+# Calculate Cook's distance
+cooksd <- cooks.distance(model)
+
+# Plot Cook's distance
+plot(cooksd, pch="*", cex=2, main="Cook's distance", ylab="Cook's distance")
+abline(h = 4/length(cooksd), col="red")  # Add a horizontal line at 4/n
+text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>4/length(cooksd),names(cooksd),""), col="red")
+
+# Identify influential points
+influential <- as.numeric(names(cooksd)[(cooksd > 4/length(cooksd))])
+
+# Optionally, remove influential points from the dataset
+data_clean <- data_clean[-influential, ]
+
+```
+```{r}
+dim(data_clean)
+```
+
+```{r}
+pie(table(year))
+barplot(table(year))
+# More countries take survey from 2006
+```
+
+```{r}
+hist(data_clean$Log.GDP.per.capita, breaks = 20)
+# Left-skewed distribution, many countries have average log GDP per capita
+```
+
+```{r}
+hist(Social.support, breaks = 30)
+# average of national responses on the question... 
+# left-skewed, most responses were yes
+# highest values 0.9
+```
+
+```{r}
+hist(Freedom.to.make.life.choices, breaks = 30)
+# average of national responses on the question... 
+# left-skewed, most responses were yes
+# highest value: 0.8
+```
+
+```{r}
+hist(Healthy.life.expectancy.at.birth, breaks = 40)
+# average life expectancy
+# most people expect their age between 65-68 or 71-73
+```
+```{r}
+hist(Generosity, breaks = 30)
+# Residual of regressing national average of response to the question...
+# residual -> negative is possible
+# most people say no
+```
+```{r}
+hist(Perceptions.of.corruption, breaks = 30)
+# average of national responses on the 2 questions on corruption
+# most people response 2 yes
+```
+```{r}
+hist(Positive.affect, breaks = 30)
+# average of 3 positive affect measures
+```
+```{r}
+hist(Negative.affect, breaks = 30)
+# average of 3 negative effects per country
+# left-skewed
+# most people feels little negative effect
+```
+```{r}
+hist(Life.Ladder, breaks = 30)
+# the ladder score (happiness score), from 0 to 10
+# looks approximately normal
+```
+
+```{r}
+plot(Life.Ladder ~ Negative.affect, data = data_clean)
+# Lots of outliers in the Negative.affect plot
+# Life.Ladder plot looks normal
+# The relationship between the two variables is not clear
+# correlation: -0.3
+cor(Life.Ladder, Negative.affect)
+```
+
+```{r}
+plot(Life.Ladder ~ Positive.affect, data = data_clean)
+cor(Life.Ladder, Positive.affect)
+# Relationship: positive relationship between the two variables, but not quite clear
+```
+
+```{r}
+plot(Life.Ladder ~ Log.GDP.per.capita, data = data_clean)
+cor(Life.Ladder, Log.GDP.per.capita)
+# Relationship: positive relationship between the two variables, obvious positive relationship
+```
+
+```{r}
+plot(Life.Ladder ~ Healthy.life.expectancy.at.birth, data = data_clean)
+cor(Life.Ladder, Healthy.life.expectancy.at.birth)
+# Relationship: positive relationship between the two variables, clear relationship
+```
+
+```{r}
+plot(Life.Ladder ~ Social.support, data = data_clean)
+cor(Life.Ladder, Social.support)
+# Relationship: positive relationship between the two variables, clear relationship
+```
+
+```{r}
+plot(Life.Ladder ~ Freedom.to.make.life.choices, data = data_clean)
+cor(Life.Ladder, Freedom.to.make.life.choices)
+# Relationship: seems positive, but not quite clear
+```
+
+```{r}
+plot(Life.Ladder ~ Generosity, data = data_clean)
+cor(Life.Ladder, Generosity)
+# Relationship: no relationship
+```
+
+```{r}
+plot(Life.Ladder ~ Perceptions.of.corruption, data = data_clean)
+cor(Life.Ladder, Perceptions.of.corruption)
+# Relationship: negative relationship, but not clear
+```
+
+```{r}
+boxplot(Life.Ladder ~ year, data = data_clean)
+# Shows a (quite) consistent ladder score over years
+```
+```{r}
+data_clean$Country.name <- as.factor(data_clean$Country.name)
+
+# Create dummy variables
+dummy_vars <- model.matrix(~ Country.name, data = data_clean)
+
+# Remove the intercept column
+dummy_vars <- dummy_vars[, -1]
+
+# Combine the dummy variables with the original data frame
+data_clean <- cbind(data_clean, dummy_vars)
+
+data_clean <- dplyr::select(data_clean, -Country.name)
+data_clean <- dplyr::select(data_clean, -Country.nameSuriname)
+# Display the first few rows of the data frame with dummy variables
+head(data_clean)
+```
+
+```{r}
+set.seed(1)
+sample_size <- floor(0.8 * nrow(data_clean))
+train_indices <- sample(seq_len(nrow(data_clean)), size = sample_size)
+data_train <- data_clean[train_indices, ]
+data_test <- data_clean[-train_indices, ]
+detach(data_clean)
+attach(data_train)
+```
+
+```{r}
+model = lm(Life.Ladder ~ . , data = data_train)
+summary(model)
+```
+
+```{r}
+vif_values = vif(model)
+max_vif <- max(vif_values)
+while (max_vif > 10) {
+  max_vif_var <- names(vif_values[vif_values == max_vif])
+  data_train <- data_train[ , !(names(data_train) %in% max_vif_var)]
+  model <- lm(Life.Ladder ~ . , data = data_train)
+  vif_values <- vif(model)
+  max_vif <- max(vif_values)
+}
+```
+
+
+```{r}
+model <- lm(Life.Ladder ~ . , data = data_train)
+vif(model)
+print(max(vif(model)))
+```
