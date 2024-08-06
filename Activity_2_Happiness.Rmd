@@ -1,0 +1,17 @@
+---
+title: "Activity_2_Happiness"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(car)
+library(MASS)
+library(corrplot)
+library(reshape2)
+library(faraway)
+library(caret)
+library(lmtest)
+```
