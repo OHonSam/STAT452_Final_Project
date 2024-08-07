@@ -103,18 +103,125 @@ Based on the observation, the suicides cases distributed evenly among different 
 
 ### Process data
 ```{r}
-# Convert all character variables to factors
-data_clean <- data_clean %>% mutate_if(is.character, as.factor)
+# # Convert all character variables to factors
+# data_clean <- data_clean %>% mutate_if(is.character, as.factor)
+# 
+# # Use dummyVars to create a formula for converting factors to dummy variables
+# dummies <- dummyVars(~ ., data = data_clean)
+# 
+# # Apply the dummyVars transformation to the data
+# data_clean_dummies <- predict(dummies, newdata = data_clean)
+# 
+# # Convert the resulting matrix to a data frame
+# data_clean_dummies <- as.data.frame(data_clean_dummies)
+# 
+# # Print the first few rows of the resulting data frame
+# str(data_clean_dummies)
+```
 
-# Use dummyVars to create a formula for converting factors to dummy variables
-dummies <- dummyVars(~ ., data = data_clean)
+```{r}
+# Process 'year' column
+data_clean$year <- data_clean$year - 1985
+```
 
-# Apply the dummyVars transformation to the data
-data_clean_dummies <- predict(dummies, newdata = data_clean)
 
-# Convert the resulting matrix to a data frame
-data_clean_dummies <- as.data.frame(data_clean_dummies)
+```{r}
+# Create dummy variables for the 'country' column
+dummy_vars <- model.matrix(~ country, data = data_clean)
 
-# Print the first few rows of the resulting data frame
-str(data_clean_dummies)
+# Remove the intercept column
+dummy_vars <- dummy_vars[, -1]
+
+# Combine the dummy variables with the original data frame
+data_clean <- cbind(data_clean, dummy_vars)
+
+data_clean <- dplyr::select(data_clean, -country)
+str(data_clean)
+```
+
+```{r}
+data_clean$sexMale <- ifelse(data_clean$sex == "male", 1, 0)
+data_clean$sex <- NULL
+```
+
+```{r}
+data_clean$geneX <- ifelse(data_clean$generation == "Generation X", 1, 0)
+data_clean$geneMillenials <- ifelse(data_clean$generation == "Millenials", 1, 0)
+data_clean$geneBoomers <- ifelse(data_clean$generation == "Boomers", 1, 0)
+data_clean$geneSilent <- ifelse(data_clean$generation == "Silent", 1, 0)
+data_clean$generation <- NULL
+# The other generation would be G.I. Generation
+```
+
+```{r}
+data_clean$Age15to24 <- ifelse(data_clean$age == "15-24 years", 1, 0)
+data_clean$Age25to34 <- ifelse(data_clean$age == "25-34 years", 1, 0)
+data_clean$Age35to54 <- ifelse(data_clean$age == "35-54 years", 1, 0)
+data_clean$Age55to74 <- ifelse(data_clean$age == "55-74 years", 1, 0)
+data_clean$age <- NULL
+#The other generation would be 75+ years
+```
+
+
+```{r}
+str(data_clean)
+```
+
+
+
+## 2. Split data to train and test
+```{r}
+set.seed(1)
+sample_size <- floor(0.8 * nrow(data_clean))
+train_indices <- sample(seq_len(nrow(data_clean)), size = sample_size)
+data_train <- data_clean[train_indices, ]
+data_test <- data_clean[-train_indices, ]
+detach(data_clean)
+attach(data_train)
+```
+
+## 3. Build model
+
+### Check multicollinearity
+
+We consider correlation matrix
+```{r}
+cor_matrix <- cor(data_train)
+cor_matrix
+```
+heat map:
+```{r}
+corrplot(cor_matrix, method = "color", type = "upper", 
+         tl.col = "black", tl.srt = 45, addCoef.col = "black")
+
+# Convert the correlation matrix to long format for ggplot2
+cor_matrix_melted <- melt(cor_matrix)
+
+# Visualize with ggplot2
+ggplot(data = cor_matrix_melted, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1, 1), space = "Lab", 
+                       name = "Correlation") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   size = 12, hjust = 1)) +
+  coord_fixed()
+```
+
+```{r}
+model = lm(suicides_no ~ ., data = data_train)
+summary(model)$r.squared
+vif(model)
+```
+
+```{r}
+model = lm(suicides_no ~ . - `countryUnited States` , data = data_train)
+summary(model)$r.squared
+vif(model)
+```
+```{r}
+model = lm(suicides_no ~ . - `countryUnited States` - gdp_per_capita , data = data_train)
+summary(model)$r.squared
+vif(model)
 ```
