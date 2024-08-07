@@ -1,0 +1,99 @@
+---
+title: "Activity2_Suicide"
+output: html_document
+date: "2024-08-06"
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(car)
+library(MASS)
+library(corrplot)
+library(reshape2)
+library(faraway)
+library(caret)
+```
+
+## 1. Import and clean data
+
+```{r}
+data <- read.csv("master.csv", header = TRUE)
+
+attach(data)
+head(data)
+str(data)
+dim(data)
+```
+### Clean data
+
+```{r}
+# Rename
+data$gdp_for_year <- data$gdp_for_year....
+data$gdp_for_year.... <- NULL
+
+data$gdp_per_capita <- data$gdp_per_capita....
+data$gdp_per_capita.... <- NULL
+```
+
+```{r}
+# Check for missing values
+missing_values <- sapply(data, function(x) sum(is.na(x)))
+print(missing_values)
+```
+The missing of HDI.for.year account for about 70% of the dataset. Therefore, we decide to remove this variable. Moreover, country.year is combination of country and year; and suicides.100k.pop is suicides / (population / 100k) so we also decide to remove those variables
+
+```{r}
+data_clean <- data
+detach(data)
+attach(data_clean)
+data_clean <- dplyr::select(data_clean, -HDI.for.year, -country.year, -suicides.100k.pop)
+```
+
+```{r}
+# Convert gdp_for_year.... to numeric after removing commas
+data_clean <- data_clean %>%
+mutate(gdp_for_year = as.numeric(gsub(",", "", gdp_for_year)))
+str(data_clean)
+```
+
+### Descriptive statistic
+```{r}
+hist(suicides_no, breaks = 50)
+log_suicides_no <- log(suicides_no)
+hist(log_suicides_no, breaks = 50)
+boxplot(log_suicides_no)
+```
+
+```{r}
+boxplot(log(population))
+hist(gdp_per_capita, breaks = 20)
+```
+
+
+```{r}
+barplot(table(generation))
+pie(table(generation))
+barplot(table(age))
+pie(table(age))
+```
+
+
+### Process data
+```{r}
+# Convert all character variables to factors
+data_clean <- data_clean %>% mutate_if(is.character, as.factor)
+
+# Use dummyVars to create a formula for converting factors to dummy variables
+dummies <- dummyVars(~ ., data = data_clean)
+
+# Apply the dummyVars transformation to the data
+data_clean_dummies <- predict(dummies, newdata = data_clean)
+
+# Convert the resulting matrix to a data frame
+data_clean_dummies <- as.data.frame(data_clean_dummies)
+
+# Print the first few rows of the resulting data frame
+str(data_clean_dummies)
+```
