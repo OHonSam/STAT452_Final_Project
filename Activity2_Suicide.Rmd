@@ -42,13 +42,11 @@ data$gdp_per_capita.... <- NULL
 missing_values <- sapply(data, function(x) sum(is.na(x)))
 print(missing_values)
 ```
-The missing of HDI.for.year account for about 70% of the dataset. Therefore, we decide to remove this variable. Moreover, country.year is combination of country and year; and suicides.100k.pop is suicides / (population / 100k) so we also decide to remove those variables
+The missing values of HDI.for.year account for about 70% of the dataset. Therefore, we decide to remove this variable. Moreover, country.year is combination string of country and year, which is redundant; and suicides.100k.pop is suicides / (population / 100k), which includes our dependent variable suicides_no, so we also decide to remove those variables at first.
 
 ```{r}
 data_clean <- data
-detach(data)
-attach(data_clean)
-data_clean <- dplyr::select(data_clean, -HDI.for.year, -country.year, -suicides.100k.pop)
+data_clean <- dplyr::select(data_clean, -HDI.for.year, -country.year)
 ```
 
 ```{r}
@@ -56,19 +54,41 @@ data_clean <- dplyr::select(data_clean, -HDI.for.year, -country.year, -suicides.
 data_clean <- data_clean %>%
 mutate(gdp_for_year = as.numeric(gsub(",", "", gdp_for_year)))
 str(data_clean)
+detach(data)
+attach(data_clean)
 ```
 
 ### Descriptive statistic
+
 ```{r}
 hist(suicides_no, breaks = 50)
 log_suicides_no <- log(suicides_no)
-hist(log_suicides_no, breaks = 50)
+
+hist(log_suicides_no, breaks = 30)
+
 boxplot(log_suicides_no)
 ```
+```{r}
+boxplot(year)
+hist(year, breaks = 20)
+pie(table(year))
+```
+The number of suicides cases seem to increase over the years. The number of suicides cases is the lowest in 2016, which may be due to lack of data.
+
+```{r}
+pie(table(sex))
+barplot(table(sex))
+```
+The suicide cases distributed evenly among male and female.
+
 
 ```{r}
 boxplot(log(population))
-hist(gdp_per_capita, breaks = 20)
+hist(log(gdp_per_capita)^2, breaks = 50)
+
+boxplot(log(gdp_for_year))
+hist(log(gdp_for_year), breaks = 20, main = "Histogram of GDP for Year", xlab = "GDP for Year")
+
 ```
 
 
@@ -78,6 +98,7 @@ pie(table(generation))
 barplot(table(age))
 pie(table(age))
 ```
+Based on the observation, the suicides cases distributed evenly among different ages. The number of suicides cases is the lowest in the Generation Z group.
 
 
 ### Process data
