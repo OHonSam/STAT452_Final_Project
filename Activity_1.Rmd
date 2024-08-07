@@ -59,10 +59,6 @@ data_clean <- na.omit(data)
 # Identify duplicate rows based on all columns
 duplicates <- duplicated(data_clean)
 print(data_clean[duplicates, ])
-
-# Identify duplicate rows based on a specific column
-duplicates_ID <- duplicated(data_clean$ID)
-print(data_clean[duplicates_ID, ])
 ```
 There is no duplicate value.
 
@@ -155,6 +151,14 @@ plot(log_mgp_square ~ acceleration)
 Overall, there is a correlation between mgp and horsepower, displacement, weight while there is no correlation between mgp and acceleration.
 
 ### Create dummy variable
+```{r}
+min(model_year)
+max(model_year)
+# Convert year from 1970-1982 to 1-13
+data_clean$model_year <- data_clean$model_year - 1970 + 1
+```
+
+
 ```{r}
 # Create dummy variables for 'origin' column
 data_clean$north_american <- ifelse(data_clean$origin == 1, 1, 0)
@@ -315,7 +319,7 @@ shapiro.test(residuals(model3))
 par(mfrow=c(1,2))
 
 hist_residuals <- residuals(model3)
-hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 100, probability = TRUE)
+hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 30, probability = TRUE)
 
 mean_residuals <- mean(hist_residuals)
 sd_residuals <- sd(hist_residuals)
@@ -325,7 +329,7 @@ qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
 qqline(hist_residuals, col = "red")
 ```
 
-## studentized Breusch-Pagan test
+### Studentized Breusch-Pagan test
 ```{r}
 bp_test <- bptest(model3)
 print(bp_test)
@@ -343,9 +347,7 @@ best_lambda <- lambda[which.max(log_likelihood)]
 # Print the best lambda
 print(best_lambda)
 ```
-```{r}
-best_lambda <- 0.1
-```
+
 
 ```{r}
 best_lambda = 0.5
@@ -355,17 +357,53 @@ shapiro.test(residuals(model_cox))
 bp_test <- bptest(model_cox)
 print(bp_test)
 ```
+```{r}
+# Check normality of residuals
+residuals <- residuals(model_cox)
+
+# Shapiro-Wilk test for normality
+shapiro_test <- shapiro.test(residuals)
+print(shapiro_test)
+
+# Q-Q plot
+qqnorm(residuals)
+qqline(residuals, col = "red")
+
+# Plot residuals to visually check for normality
+par(mfrow=c(1,2))
+
+hist_residuals <- residuals(model_cox)
+hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 30, probability = TRUE)
+
+mean_residuals <- mean(hist_residuals)
+sd_residuals <- sd(hist_residuals)
+curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
+```
 ## 5. Interpretation
 ```{r}
 summary(model_cox)
 ```
 ### Quantile
+- 25% of residuals are less than -0.06215  
+- 50% of residuals are above 0.00484, 50% of residuals are below 0.00484  
+- 75% of residuals are less than 0.06370  
 
 ### Coefficent of predictors
+Estimated Regression model: $\hat{\frac{(log\_mgp\_square)^{\lambda_{best}} - 1}{\lambda_{best}}} = \hat\beta_0 + \hat\beta_1 \cdot weight + \hat \beta_2 \cdot model\_year + \hat\beta_3 \cdot north\_american$
+
+- $\hat\beta_0$: $\hat{\frac{(log\_mgp\_square)^{\lambda_{best}} - 1}{\lambda_{best}}} =  5.588e+01$ when weight = 0, model_year = 0, north_american = 0
+
+- $\hat\beta_1$: For each unit increase in weight, on average, the expected value of $\hat{\frac{(log\_mgp\_square)^{\lambda_{best}} - 1}{\lambda_{best}}$ decreases by 2.498e-04, holding other predictors constant.
+
+- $\hat\beta_2$: For each unit increase in model_year, on average, the expected value of $\hat{\frac{(log\_mgp\_square)^{\lambda_{best}} - 1}{\lambda_{best}}$ increases by 2.874e-02, holding other predictors constant.
+
+- $\hat\beta_3$: if the engine is in north_american, on average, the expected value of $\hat{\frac{(log\_mgp\_square)^{\lambda_{best}} - 1}{\lambda_{best}}$ decreases by 6.065e-02, holding other predictors constant.
 
 ### Multiple R-squared and Adjusted R-squared
+- Multiple R-squared: 0.8721 inteprets that 87.21% of the variance in the response variable $\hat{\frac{(log\_mgp\_square)^{\lambda_{best}} - 1}{\lambda_{best}}}$ can be explained by the predictor variables (weight, model_year, north_american) in the model.
 
 ### Residual standard error
+- Residual standard error: rse = 0.1059 indicates that the model's predictions are, on average, approximately 0.1059 units away from the actual values of $\hat{\frac{(log\_mgp\_square)^{\lambda_{best}} - 1}{\lambda_{best}}$. Some points are further from the line than this rse, other points are closer to the line than this rse.
 
 ## 6,7. Evaluation
 Using cross validation k-folds
