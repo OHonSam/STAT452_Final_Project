@@ -328,12 +328,22 @@ curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRU
 qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
 qqline(hist_residuals, col = "red")
 ```
+$H_0$: the residuals are normally distributed
+
+$H_a$: the residuals are not normally distributed
+
+We can see that the scatter points of residuals is quite close to qqline. In addition, p-value = 0.0548 \> $\alpha$ = 0.05, we doesn't have enough evidence to reject H0: $\mu_{\epsilon} = 0$, which states that residuals of Insurance model are normally distributed.
 
 ### Studentized Breusch-Pagan test for heteroscedasticity
 ```{r}
 bp_test <- bptest(model3)
 print(bp_test)
 ```
+$H_0$: The residuals have constant variance
+
+$H_a$: The residuals do not have constant variance
+
+p-value = 0.005774 \< $\alpha$ = 0.05, we have enough evidence to reject the null hypothesis, which suggests that the residuals don't have constant variance.
 
 ### Box-Cox Transformation
 ```{r}
@@ -377,12 +387,23 @@ mean_residuals <- mean(hist_residuals)
 sd_residuals <- sd(hist_residuals)
 curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
 ```
+
+$H_0$: the residuals are normally distributed
+
+$H_a$: the residuals are not normally distributed
+
+We can see that the scatter points of residuals is quite close to qqline. In addition, p-value = 0.0528 \> $\alpha$ = 0.05, we doesn't have enough evidence to reject H0: $\mu_{\epsilon} = 0$, which states that residuals of Insurance model are normally distributed.
+
 ```{r}
 # Breusch-Pagan test to check for heteroscedasticity (constant variance of residuals)
 bp_test <- bptest(model_cox)
 print(bp_test)
 ```
+$H_0$: The residuals have constant variance
 
+$H_a$: The residuals do not have constant variance
+
+p-value = 0.1222 \> $\alpha$ = 0.05, we don't have enough evidence to reject the null hypothesis, which suggests that the residuals have constant variance.
 
 ## 5. Interpretation
 ```{r}
