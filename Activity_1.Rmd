@@ -189,7 +189,7 @@ summary(model1)
 ```
 
 ```{r}
-vif(model1)
+car::vif(model1)
 ```
 
 We consider correlation matrix
@@ -233,7 +233,7 @@ summary(model1)
 ```
 
 ```{r}
-vif(model1)
+car::vif(model1)
 ```
 
 
@@ -260,7 +260,7 @@ summary(model_horsepower)
 The R-squared = 0.878. Moreover, there are strong correlation among horsepower towards cylinders, weight, acceleration, model_year, and north_american.
 
 ```{r}
-vif(model1)
+car::vif(model1)
 ```
 
 Since VIF value of 'cylinders' 5.692103, we try removing cylinders to hope for a better result: 
@@ -280,7 +280,7 @@ The R-squared = 0.8287. Moreover, there are strong correlation among cylinders t
 Therefore, we decide to remove 'cylinders' predictor variable due to collinearity.
 
 ```{r}
-vif(model1)
+car::vif(model1)
 ```
 The vif values of remaining predictor are less than 5. Hence, there is unlikely collinearity among variables.
 
@@ -310,7 +310,7 @@ anova(model2, model3)
 -plot
 => remove acceleration => model3
 
-### Test for normality
+### Shapiro-Wilk test for normality
 ```{r}
 # Use Shapiro-Wilk test to test for normality of the residuals
 shapiro.test(residuals(model3))
@@ -329,13 +329,13 @@ qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
 qqline(hist_residuals, col = "red")
 ```
 
-### Studentized Breusch-Pagan test
+### Studentized Breusch-Pagan test for heteroscedasticity
 ```{r}
 bp_test <- bptest(model3)
 print(bp_test)
 ```
 
-### Box-Cox
+### Box-Cox Transformation
 ```{r}
 boxcox_result <- boxcox(model3, plotit = TRUE)
 lambda <- boxcox_result$x
@@ -350,26 +350,24 @@ print(best_lambda)
 
 
 ```{r}
+# Build the final model with Box-Cox transformation
 best_lambda = 0.5
 model_cox = lm((((data_train$log_mgp_square^best_lambda) - 1)/best_lambda) ~ data_train$weight + data_train$model_year + data_train$north_american)
 summary(model_cox)
-shapiro.test(residuals(model_cox))
-bp_test <- bptest(model_cox)
-print(bp_test)
 ```
 ```{r}
 # Check normality of residuals
 residuals <- residuals(model_cox)
 
-# Shapiro-Wilk test for normality
+## Shapiro-Wilk test for residuals normality
 shapiro_test <- shapiro.test(residuals)
 print(shapiro_test)
 
-# Q-Q plot
+## Q-Q plot
 qqnorm(residuals)
 qqline(residuals, col = "red")
 
-# Plot residuals to visually check for normality
+## Plot residuals to visually check for normality
 par(mfrow=c(1,2))
 
 hist_residuals <- residuals(model_cox)
@@ -379,6 +377,13 @@ mean_residuals <- mean(hist_residuals)
 sd_residuals <- sd(hist_residuals)
 curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
 ```
+```{r}
+# Breusch-Pagan test to check for heteroscedasticity (constant variance of residuals)
+bp_test <- bptest(model_cox)
+print(bp_test)
+```
+
+
 ## 5. Interpretation
 ```{r}
 summary(model_cox)
@@ -406,7 +411,7 @@ Estimated Regression model: $\hat{\frac{(log\_mgp\_square)^{\lambda_{best}} - 1}
 - Residual standard error: rse = 0.1059 indicates that the model's predictions are, on average, approximately 0.1059 units away from the actual values of $\hat{\frac{(log\_mgp\_square)^{\lambda_{best}} - 1}{\lambda_{best}}$. Some points are further from the line than this rse, other points are closer to the line than this rse.
 
 ## 6,7. Evaluation
-Using cross validation k-folds
+###Using cross validation k-folds
 ```{r}
 set.seed(1)
 # Define a train control with k-fold cross-validation
