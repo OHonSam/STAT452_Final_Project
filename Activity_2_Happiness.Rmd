@@ -17,7 +17,7 @@ library(lmtest)
 ```
 ## 1. Import and clean data 
 ```{r}
-data <- read.csv("world-happiness-report.csv", header = TRUE, sep = ",")
+data <- read.csv("world-happiness-report-with-regions.csv", header = TRUE, sep = ",")
 attach(data)
 str(data)
 head(data)
@@ -29,11 +29,11 @@ print(missing_values)
 ```
 
 ```{r}
-data_clean <- na.omit(data)
+data_clean <- data %>%
+  group_by(Country) %>%
+  mutate(across(where(is.numeric), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
 data_clean <- unique(data_clean)
-dim(data_clean)
-dim(data)
-
+print(data_clean)
 # 1708 / 19
 ```
 
@@ -78,7 +78,7 @@ ggplot(data, aes(y = Perceptions.of.corruption)) +
   labs(title = "...", y = "Perceptions of corruption")
 ```
 ```{r}
-model <- lm(Life.Ladder ~ . -Country.name, data = data_clean)
+model <- lm(Life.Ladder ~ . -Country - Region, data = data_clean)
 
 # Calculate Cook's distance
 cooksd <- cooks.distance(model)
@@ -121,13 +121,12 @@ hist(Social.support, breaks = 30)
 hist(Freedom.to.make.life.choices, breaks = 30)
 # average of national responses on the question... 
 # left-skewed, most responses were yes
-# highest value: 0.8
 ```
 
 ```{r}
 hist(Healthy.life.expectancy.at.birth, breaks = 40)
 # average life expectancy
-# most people expect their age between 65-68 or 71-73
+# most people expect their age between 65-68 or 71-72
 ```
 ```{r}
 hist(Generosity, breaks = 30)
@@ -143,11 +142,12 @@ hist(Perceptions.of.corruption, breaks = 30)
 ```{r}
 hist(Positive.affect, breaks = 30)
 # average of 3 positive affect measures
+# left-skewed
 ```
 ```{r}
 hist(Negative.affect, breaks = 30)
 # average of 3 negative effects per country
-# left-skewed
+# right-skewed
 # most people feels little negative effect
 ```
 ```{r}
@@ -161,14 +161,14 @@ plot(Life.Ladder ~ Negative.affect, data = data_clean)
 # Lots of outliers in the Negative.affect plot
 # Life.Ladder plot looks normal
 # The relationship between the two variables is not clear
-# correlation: -0.3
+# correlation: -0.286
 cor(Life.Ladder, Negative.affect)
 ```
 
 ```{r}
 plot(Life.Ladder ~ Positive.affect, data = data_clean)
 cor(Life.Ladder, Positive.affect)
-# Relationship: positive relationship between the two variables, but not quite clear
+# Relationship: positive relationship between the two variables, but not quite clear (0.562)
 ```
 
 ```{r}
@@ -212,10 +212,15 @@ boxplot(Life.Ladder ~ year, data = data_clean)
 # Shows a (quite) consistent ladder score over years
 ```
 ```{r}
-data_clean$Country.name <- as.factor(data_clean$Country.name)
+boxplot(Life.Ladder ~ Region, data = data_clean)
+```
+
+```{r}
+data_clean <- as.data.frame(data_clean)
+data_clean$Region <- as.factor(data_clean$Region)
 
 # Create dummy variables
-dummy_vars <- model.matrix(~ Country.name, data = data_clean)
+dummy_vars <- model.matrix(~ Region, data = data_clean)
 
 # Remove the intercept column
 dummy_vars <- dummy_vars[, -1]
@@ -223,8 +228,8 @@ dummy_vars <- dummy_vars[, -1]
 # Combine the dummy variables with the original data frame
 data_clean <- cbind(data_clean, dummy_vars)
 
-data_clean <- dplyr::select(data_clean, -Country.name)
-data_clean <- dplyr::select(data_clean, -Country.nameSuriname)
+data_clean <- dplyr::select(data_clean, -Country)
+data_clean <- dplyr::select(data_clean, -Region)
 # Display the first few rows of the data frame with dummy variables
 head(data_clean)
 ```
@@ -261,4 +266,89 @@ while (max_vif > 10) {
 model <- lm(Life.Ladder ~ . , data = data_train)
 vif(model)
 print(max(vif(model)))
+```
+
+```{r}
+# Test the collinearity of the healthy life variable
+test <- lm(Healthy.life.expectancy.at.birth ~ . - Life.Ladder, data = data_train)
+summary(test)
+# R^2 = 0.85 -> high collinearity -> remove the variable
+```
+```{r}
+model <- lm(Life.Ladder ~ . - Healthy.life.expectancy.at.birth, data = data_train)
+summary(model)
+vif(model)
+```
+```{r}
+modFull = lm(Life.Ladder ~ . - Healthy.life.expectancy.at.birth, data = data_train)
+modZero = lm(Life.Ladder ~ 1, data = data_train)
+modInter = lm(Life.Ladder~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + Generosity
++ Perceptions.of.corruption + Positive.affect + Negative.affect, data = data_train)
+```
+
+```{r}
+model2 = MASS::stepAIC(modInter, direction = "both", scope = list(lower = modZero, upper = modFull), k = 2)
+summary(model2)
+```
+
+```{r}
+model3 = MASS::stepAIC(modInter, direction = "both", scope = list(lower = modZero, upper = modFull), k = log(nrow(data_train)))
+summary(model3)
+```
+
+```{r}
+anova(model2, model3)
+# Since P-value < 0.05, we reject H0 and conclude that the model with more variables is better
+# However, it's not worth to keep the model with more variables but less than 1% improvement in R^2
+# We will keep the model with fewer variables
+```
+
+```{r}
+shapiro.test(residuals(model3))
+par(mfrow=c(1,2))
+
+hist_residuals <- residuals(model3)
+hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 100, probability = TRUE)
+
+mean_residuals <- mean(hist_residuals)
+sd_residuals <- sd(hist_residuals)
+curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
+
+qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
+qqline(hist_residuals, col = "red")
+```
+
+```{r}
+bp_test <- bptest(model3)
+print(bp_test)
+# Fail BP test, meaning that the variance is not constant -> Apply Box-cox transformation
+```
+
+```{r}
+# Life.Ladder ~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + 
+#    Generosity + Perceptions.of.corruption + Positive.affect + 
+#    `RegionLatin America and Caribbean` + `RegionSoutheast Asia` + 
+#    `RegionSub-Saharan Africa` + `RegionWestern Europe` + `RegionNorth America and ANZ`
+model_cox = lm(Life.Ladder~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + 
+    Generosity + Perceptions.of.corruption + Positive.affect + `RegionSoutheast Asia` + `RegionLatin America and Caribbean`  , data = data_train)
+summary(model_cox)
+boxcox_result <- boxcox(model_cox, plotit = TRUE)
+lambda <- boxcox_result$x
+log_likelihood <- boxcox_result$y
+best_lambda <- lambda[which.max(log_likelihood)]
+
+# Print the best lambda
+print(best_lambda)
+```
+
+```{r}
+best_lambda = 1.8
+model_cox = lm(((((Life.Ladder)^best_lambda) - 1)/best_lambda) ~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + Generosity + Perceptions.of.corruption + Positive.affect + `RegionSoutheast Asia` + `RegionLatin America and Caribbean`  , data = data_train)
+summary(model_cox)
+```
+
+```{r}
+shapiro.test(residuals(model_cox))
+bp_test <- bptest(model_cox)
+print(bp_test)
 ```
