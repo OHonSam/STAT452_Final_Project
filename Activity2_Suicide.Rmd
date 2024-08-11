@@ -121,7 +121,7 @@ Based on the observation, the suicides cases distributed evenly among different 
 
 ```{r}
 # Process 'year' column
-data_clean$year <- data_clean$year - 1985
+data_clean$year <- data_clean$year - 1985 + 1
 ```
 
 
