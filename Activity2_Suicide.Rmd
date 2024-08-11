@@ -100,8 +100,31 @@ pie(table(age))
 ```
 Based on the observation, the suicides cases distributed evenly among different ages. The number of suicides cases is the lowest in the Generation Z group.
 
+```{r}
+hist(log(population)^2, breaks = 30)
+```
+
 
 ### Preprocess data
+
+```{r}
+# Process 'gdp_per_capita' column
+data_clean$transform_gdp_per_capita <- log(gdp_per_capita)^2
+data_clean$gdp_per_capita <- NULL
+```
+
+```{r}
+# Process 'population' column
+data_clean$transform_population <- log(population)^2
+data_clean$population <- NULL
+```
+
+
+```{r}
+# Process 'gdp_per_capita' column
+data_clean$transform_gdp_for_year <- log(gdp_for_year)
+data_clean$gdp_for_year <- NULL
+```
 
 ```{r}
 # Process 'suicides_no' column
@@ -220,23 +243,22 @@ vif(model)
 ```
 
 ```{r}
-model = lm(log_suicides_no ~ . -regionEurope , data = data_train)
+model = lm(log_suicides_no ~ . -transform_gdp_for_year , data = data_train)
 summary(model)
 vif(model)
 ```
-As it reduces a large amount of R-squared from ... to ... so we decide to keep regionEurope.
-
 ```{r}
-model = lm(log_suicides_no ~ ., data = data_train)
+model = lm(log_suicides_no ~ . -transform_gdp_for_year -regionEurope, data = data_train)
 summary(model)
+vif(model)
 ```
 
 ### Variable selection
 
 ```{r}
-modFull = lm(log_suicides_no ~ ., data = data_train)
+modFull = lm(log_suicides_no ~ . -transform_gdp_for_year -regionEurope, data = data_train)
 modZero = lm(log_suicides_no ~ 1, data = data_train)
-modInter = lm(log_suicides_no ~ year + population + gdp_for_year + regionAsia + regionNorthAmerica + sexMale + geneBoomers + Age25to34, data = data_train)
+modInter = lm(log_suicides_no ~ year + transform_population + regionAsia + regionNorthAmerica + sexMale + geneBoomers + Age25to34, data = data_train)
 ```
 
 ```{r}
@@ -301,8 +323,8 @@ print(best_lambda)
 
 ```{r}
 # Build the final model with Box-Cox transformation
-best_lambda = 1.25
-model_cox = lm((((data_train$log_suicides_no^best_lambda) - 1)/best_lambda) ~ ., data = data_train)
+best_lambda = 1.5
+model_cox = lm((((data_train$log_suicides_no^best_lambda) - 1)/best_lambda) ~ . -transform_gdp_for_year -regionEurope, data = data_train)
 summary(model_cox)
 ```
 
