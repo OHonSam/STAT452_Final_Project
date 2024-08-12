@@ -14,6 +14,7 @@ library(corrplot)
 library(reshape2)
 library(faraway)
 library(caret)
+library(nortest)
 ```
 
 ## 1. Import and clean data
@@ -26,6 +27,12 @@ head(data)
 str(data)
 dim(data)
 ```
+
+```{r}
+hist(log(data$suicides.100k.pop + 1)^2, breaks = 50)
+boxplot(log(data$suicides.100k.pop +1))
+```
+
 ### Clean data
 
 ```{r}
@@ -61,13 +68,19 @@ attach(data_clean)
 ### Descriptive statistic
 
 ```{r}
+summary(data_clean)
+```
+
+
+```{r}
 hist(suicides_no, breaks = 50)
 log_suicides_no <- log(suicides_no + 1) + 1
 
-hist(log_suicides_no, breaks = 30)
+hist(log_suicides_no, breaks = 100)
 
 boxplot(log_suicides_no)
 ```
+
 ```{r}
 boxplot(year)
 hist(year, breaks = 20)
@@ -106,6 +119,12 @@ hist(log(population)^2, breaks = 30)
 
 
 ### Preprocess data
+```{r}
+# Process 'suicides_no' column
+data_clean$log_suicides_no <- log(suicides_no + 1) + 1
+data_clean$suicides_no <- NULL
+```
+
 
 ```{r}
 # Process 'gdp_per_capita' column
@@ -126,12 +145,6 @@ data_clean$transform_gdp_for_year <- log(gdp_for_year)
 data_clean$gdp_for_year <- NULL
 ```
 
-```{r}
-# Process 'suicides_no' column
-data_clean$log_suicides_no <- log(suicides_no + 1) + 1
-data_clean$suicides_no <- NULL
-```
-
 
 ```{r}
 # Process 'year' column
@@ -141,17 +154,7 @@ data_clean$year <- data_clean$year - 1985 + 1
 
 ```{r}
 # # Create dummy variables for the 'country' column
-# dummy_vars <- model.matrix(~ country, data = data_clean)
-# 
-# # Remove the intercept column
-# dummy_vars <- dummy_vars[, -1]
-# 
-# # Combine the dummy variables with the original data frame
-# data_clean <- cbind(data_clean, dummy_vars)
-# 
-# data_clean <- dplyr::select(data_clean, -country)
-# str(data_clean)
-# Define country groups based on continents or regions
+
 data_clean$regionEurope <- ifelse(data_clean$country %in% c("Austria", "Iceland", "Netherlands", "Belgium", "Bulgaria", "France", "Greece", "Ireland", "Italy", "Luxembourg", "Malta", "Norway", "Portugal", "Romania", "Spain", "Sweden", "United Kingdom", "Ukraine", "Finland", "Switzerland", "Serbia", "Slovenia", "Slovakia", "Albania", "Denmark", "Estonia", "Latvia", "Lithuania", "Belarus", "Croatia", "Czech Republic", "Germany", "Hungary", "Poland", "San Marino", "Bosnia and Herzegovina"), 1, 0)
 
 data_clean$regionAsia <- ifelse(data_clean$country %in% c("Israel", "Japan", "Republic of Korea", "Singapore", "Turkmenistan", "Thailand", "Russian Federation", "Kazakhstan", "Kyrgyzstan", "Armenia", "Azerbaijan", "Philippines", "Cyprus", "Qatar", "Sri Lanka", "Maldives", "Turkey", "United Arab Emirates", "Oman", "Bahrain", "Uzbekistan", "Georgia", "Macau"), 1, 0)
@@ -191,10 +194,10 @@ data_clean$age <- NULL
 #The other generation would be 75+ years
 ```
 
-
 ```{r}
-str(data_clean)
+summary(data_clean)
 ```
+
 
 ## 2. Split data to train and test
 ```{r}
@@ -216,41 +219,24 @@ We consider correlation matrix
 cor_matrix <- cor(data_train)
 cor_matrix
 ```
-heat map:
-```{r}
-# corrplot(cor_matrix, method = "color", type = "upper", 
-#          tl.col = "black", tl.srt = 45, addCoef.col = "black")
-# 
-# # Convert the correlation matrix to long format for ggplot2
-# cor_matrix_melted <- melt(cor_matrix)
-# 
-# # Visualize with ggplot2
-# ggplot(data = cor_matrix_melted, aes(x = Var1, y = Var2, fill = value)) +
-#   geom_tile(color = "white") +
-#   scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
-#                        midpoint = 0, limit = c(-1, 1), space = "Lab", 
-#                        name = "Correlation") +
-#   theme_minimal() + 
-#   theme(axis.text.x = element_text(angle = 45, vjust = 1, 
-#                                    size = 12, hjust = 1)) +
-#   coord_fixed()
-```
+
 
 ```{r}
 model = lm(log_suicides_no ~ ., data = data_train)
 summary(model)
-vif(model)
+car::vif(model)
 ```
 
 ```{r}
 model = lm(log_suicides_no ~ . -transform_gdp_for_year , data = data_train)
 summary(model)
-vif(model)
+car::vif(model)
 ```
+
 ```{r}
 model = lm(log_suicides_no ~ . -transform_gdp_for_year -regionEurope, data = data_train)
 summary(model)
-vif(model)
+car::vif(model)
 ```
 
 ### Variable selection
@@ -302,9 +288,10 @@ qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
 qqline(hist_residuals, col = "red")
 ```
 
+
 ### Studentized Breusch-Pagan test for heteroscedasticity
 ```{r}
-bp_test <- bptest(modelAIC)
+bp_test <- lmtest::bptest(modelAIC)
 print(bp_test)
 ```
 
@@ -324,7 +311,7 @@ print(best_lambda)
 ```{r}
 # Build the final model with Box-Cox transformation
 best_lambda = 1.5
-model_cox = lm((((data_train$log_suicides_no^best_lambda) - 1)/best_lambda) ~ . -transform_gdp_for_year -regionEurope, data = data_train)
+model_cox = lm((((data_train$log_suicides_no^best_lambda) - 1)/best_lambda) ~ . -transform_gdp_for_year -regionEurope -year, data = data_train)
 summary(model_cox)
 ```
 
@@ -335,6 +322,11 @@ subsample_residuals <- sample(residuals(model_cox), size = 5000)
 shapiro.test(subsample_residuals)
 ```
 
+```{r}
+# Use the Anderson-Darling test for normality
+ad_test <- ad.test(residuals(model_cox))
+print(ad_test)
+```
 
 ```{r}
 # Plot residuals to visually check for normality
@@ -353,6 +345,6 @@ qqline(hist_residuals, col = "red")
 
 ### Studentized Breusch-Pagan test for heteroscedasticity
 ```{r}
-bp_test <- bptest(model_cox)
+bp_test <- lmtest::bptest(model_cox)
 print(bp_test)
 ```

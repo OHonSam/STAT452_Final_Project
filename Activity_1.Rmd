@@ -18,6 +18,7 @@ library(lmtest)
 
 ## 1. Import and clean data
 
+### Import data
 ```{r}
 data <- read.csv("auto_mpg.csv", header = TRUE, sep = ";")
 attach(data)
@@ -25,6 +26,7 @@ head(data)
 dim(data)
 ```
 
+### Process missing value
 ```{r}
 # Replace "?" with NA in the horsepower column
 data$horsepower[data$horsepower == "?"] <- NA
@@ -54,6 +56,7 @@ data_clean <- na.omit(data)
 # data$horsepower[is.na(data$horsepower)] <- mean(data$horsepower, na.rm = TRUE)
 ```
 
+### Process duplicate value
 ```{r}
 # Check duplicate
 # Identify duplicate rows based on all columns
@@ -62,6 +65,7 @@ print(data_clean[duplicates, ])
 ```
 There is no duplicate value.
 
+### Process unnecessary columns
 ```{r}
 # remove car_name column in data_clean
 data_clean <- dplyr::select(data_clean, -car_name)
@@ -150,14 +154,13 @@ plot(log_mgp_square ~ acceleration)
 ```
 Overall, there is a correlation between mgp and horsepower, displacement, weight while there is no correlation between mgp and acceleration.
 
-### Create dummy variable
+### Process qualitative variables
 ```{r}
 min(model_year)
 max(model_year)
 # Convert year from 1970-1982 to 1-13
 data_clean$model_year <- data_clean$model_year - 1970 + 1
 ```
-
 
 ```{r}
 # Create dummy variables for 'origin' column
@@ -310,7 +313,7 @@ anova(model2, model3)
 -plot
 => remove acceleration => model3
 
-### Shapiro-Wilk test for normality
+### Shapiro-Wilk test for residual normality
 ```{r}
 # Use Shapiro-Wilk test to test for normality of the residuals
 shapiro.test(residuals(model3))
