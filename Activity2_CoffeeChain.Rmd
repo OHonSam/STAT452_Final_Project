@@ -1,0 +1,328 @@
+---
+title: "predict_engagement"
+output: html_document
+date: "2024-08-14"
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(car)
+library(MASS)
+library(corrplot)
+library(reshape2)
+library(faraway)
+library(caret)
+```
+
+## 1. Import and clean data
+
+```{r}
+data <- read.csv("Coffee_chain.csv", header = TRUE)
+
+head(data)
+str(data)
+dim(data)
+```
+
+### Clean data
+```{r}
+# Check for missing values
+missing_values <- sapply(data, function(x) sum(is.na(x)))
+print(missing_values)
+```
+
+```{r}
+data_clean <- data
+data_clean$Number.of.Records <- NULL
+data_clean$Number.Of.Records <- NULL
+```
+
+
+```{r}
+# Check duplicate
+# Identify duplicate rows based on all columns
+duplicates <- duplicated(data_clean)
+print(data_clean[duplicates, ])
+str(data_clean)
+```
+
+
+### Preprocess data
+```{r}
+data_clean$Area.Code <- NULL
+data_clean$Ddate <- NULL
+data_clean$Budget.Sales <- NULL
+```
+
+```{r}
+data_clean <- data_clean %>%
+mutate(Inventory = as.numeric(gsub(",", "", Inventory)))
+```
+
+```{r}
+create_dummy_variables <- function(data, variable) {
+  # Get unique values of the variable
+  unique_values <- unique(data[[variable]])
+  n <- length(unique_values)
+
+  # Create n-1 dummy variables
+  for (i in 1:(n-1)) {
+    new_col_name <- paste0(variable, "_", unique_values[i])
+    data[[new_col_name]] <- ifelse(data[[variable]] == unique_values[i], 1, 0)
+  }
+
+  # Remove original variable
+  data[[variable]] <- NULL
+
+  return(data)
+}
+```
+
+```{r}
+data_clean <- create_dummy_variables(data_clean, "Market")
+data_clean <- create_dummy_variables(data_clean, "Market.Size")
+data_clean$Product <- NULL
+data_clean <- create_dummy_variables(data_clean, "Product.Type")
+data_clean <- create_dummy_variables(data_clean, "Type")
+```
+```{r}
+# data_clean$State_Northeast <- ifelse(data_clean$State %in% c("Connecticut", "Massachusetts", "New Hampshire", "New York"), 1, 0)
+# data_clean$State_Midwest <- ifelse(data_clean$State %in% c("Illinois", "Iowa", "Missouri", "Ohio", "Wisconsin"), 1, 0)
+# data_clean$State_South <- ifelse(data_clean$State %in% c("Florida", "Louisiana", "Texas"), 1, 0)
+# data_clean$State_West <- ifelse(data_clean$State %in% c("California", "Colorado", "Nevada", "New Mexico", "Oregon", "Utah", "Washington"), 1, 0)
+
+data_clean$State <- ifelse(data_clean$State %in% c("Connecticut", "Massachusetts", "New Hampshire", "New York"), "Northeast",
+                                  ifelse(data_clean$State %in% c("Illinois", "Iowa", "Missouri", "Ohio", "Wisconsin"), "Midwest",
+                                  ifelse(data_clean$State %in% c("Florida", "Louisiana", "Texas", "Oklahoma"), "South",
+                                  ifelse(data_clean$State %in% c("California", "Colorado", "Nevada", "New Mexico", "Oregon", "Utah", "Washington"), "West", NA))))
+
+data_clean <- create_dummy_variables(data_clean, "State")
+```
+
+```{r}
+str(data_clean)
+```
+
+### Descriptive statistic
+```{r}
+hist(data_clean$Total.Expenses, breaks = 30)
+
+log_expenses <- log(data_clean$Total.Expenses)
+hist(log_expenses, breaks = 30)
+boxplot(log_expenses)
+```
+```{r}
+log_expenses <- log(data_clean$Total.Expenses)
+data_clean$log_total_expenses <- log_expenses
+data_clean$Total.Expenses <- NULL
+```
+
+```{r}
+hist(data_clean$Budget.Cogs, breaks = 30)
+hist(log(data_clean$Budget.Cogs + 1), breaks = 30)
+boxplot(data_clean$Budget.Cogs)
+boxplot(log(data_clean$Budget.Cogs + 1))
+```
+
+```{r}
+data_clean$log_budget_cogs <- log(data_clean$Budget.Cogs + 1)
+data_clean$Budget.Cogs <- NULL
+```
+
+```{r}
+mod <- lm(log_total_expenses ~., data = data_clean)
+summary(mod)
+```
+
+```{r}
+# Calculate Cook's distance
+cooksD <- cooks.distance(mod)
+influential <- cooksD[(cooksD > (4/length(cooksD)))]
+outliers <- as.numeric(names(influential))
+```
+
+
+```{r}
+
+# Remove influential observations to clean the data
+data_clean <- data_clean[-outliers, ]
+```
+
+```{r}
+# Visualize the dataset
+data_clean %>%
+  gather(key = "variable", value = "value") %>%
+  ggplot(aes(x = value)) +
+  facet_wrap(~ variable, scales = "free") +
+  geom_histogram(bins = 30) +
+  theme_minimal()
+data_clean %>%
+  gather(key = "variable", value = "value") %>%
+  ggplot(aes(x = variable, y = value)) +
+  geom_boxplot() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+## 2. Split data to train and test
+```{r}
+set.seed(1)
+sample_size <- floor(0.8 * nrow(data_clean))
+train_indices <- sample(seq_len(nrow(data_clean)), size = sample_size)
+data_train <- data_clean[train_indices, ]
+data_test <- data_clean[-train_indices, ]
+attach(data_train)
+```
+
+## 3. Build model
+### Check multicolinearity
+```{r}
+model <- lm(log_total_expenses ~., data = data_train)
+summary(model)
+car::vif(model)
+```
+
+```{r}
+model <- lm(log_total_expenses ~. -Coffee.Sales, data = data_train)
+summary(model)
+car::vif(model)
+```
+
+```{r}
+model <- lm(log_total_expenses ~. -Coffee.Sales -Budget.Margin, data = data_train)
+summary(model)
+car::vif(model)
+```
+
+```{r}
+model <- lm(log_total_expenses ~. -Coffee.Sales -Budget.Margin -Margin, data = data_train)
+summary(model)
+car::vif(model)
+```
+
+```{r}
+model <- lm(log_total_expenses ~. -Coffee.Sales -Budget.Margin -Margin -State_Midwest, data = data_train)
+summary(model)
+car::vif(model)
+```
+
+```{r}
+model <- lm(log_total_expenses ~. -Coffee.Sales -Budget.Margin -Margin -Cogs -State_Midwest, data = data_train)
+summary(model)
+car::vif(model)
+```
+
+```{r}
+model <- lm(log_total_expenses ~. -Coffee.Sales -Budget.Margin -Margin -Cogs -State_Midwest -Budget.Profit, data = data_train)
+summary(model)
+car::vif(model)
+```
+
+```{r}
+model <- lm(log_total_expenses ~. -Coffee.Sales -Budget.Margin -Margin -Cogs -State_Midwest -Budget.Profit -Market_Central, data = data_train)
+summary(model)
+car::vif(model)
+```
+
+### Variable selection
+```{r}
+modFull <- model
+modZero = lm(log_total_expenses ~ 1, data = data_train)
+modInter = lm(log_total_expenses ~ Inventory + Profit + Product.Type_Espresso + Type_Decaf + State_South, data = data_train)
+```
+
+```{r}
+modelAIC = MASS::stepAIC(modInter, direction = "both", scope = list(lower = modZero, upper = modFull), k = 2)
+```
+
+```{r}
+modelBIC = MASS::stepAIC(modInter, direction = "both", scope = list(lower = modZero, upper = modFull), k = log(nrow(data_train)))
+```
+
+```{r}
+summary(modelAIC)
+summary(modelBIC)
+```
+```{r}
+# # Remove Inventory column in modelBIC
+# modelBIC <- lm(log_total_expenses ~ Inventory + Profit + Product.Type_Espresso + 
+#     State_South + Marketing + log_budget_cogs + `Market.Size_Major Market` + 
+#     Market_East + State_West, data = data_train)
+# summary(modelBIC)
+```
+
+### Shapiro-Wilk test for normality
+```{r}
+# Use Shapiro-Wilk test to test for normality of the residuals
+shapiro.test(residuals(modelBIC))
+
+# Plot residuals to visually check for normality
+par(mfrow=c(1,2))
+
+hist_residuals <- residuals(modelBIC)
+hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 30, probability = TRUE)
+
+mean_residuals <- mean(hist_residuals)
+sd_residuals <- sd(hist_residuals)
+curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
+
+qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
+qqline(hist_residuals, col = "red")
+```
+
+### Studentized Breusch-Pagan test for heteroscedasticity
+```{r}
+bp_test <- lmtest::bptest(modelBIC)
+print(bp_test)
+```
+
+### Box-Cox Transformation
+```{r}
+boxcox_result <- boxcox(modelBIC, plotit = TRUE)
+lambda <- boxcox_result$x
+log_likelihood <- boxcox_result$y
+
+# Find the lambda with the maximum log-likelihood
+best_lambda <- lambda[which.max(log_likelihood)]
+
+# Print the best lambda
+print(best_lambda)
+```
+
+```{r}
+# Build the final model with Box-Cox transformation
+best_lambda = 3
+model_cox = lm((((data_train$log_total_expenses^best_lambda) - 1)/best_lambda) ~ Inventory + Profit + Product.Type_Espresso + Marketing + Product.Type_Coffee + State_West, data = data_train)
+summary(model_cox)
+```
+
+```{r}
+# Check normality of residuals
+residuals <- residuals(model_cox)
+
+## Shapiro-Wilk test for residuals normality
+shapiro_test <- shapiro.test(residuals)
+print(shapiro_test)
+
+## Q-Q plot
+qqnorm(residuals)
+qqline(residuals, col = "red")
+
+## Plot residuals to visually check for normality
+par(mfrow=c(1,2))
+
+hist_residuals <- residuals(model_cox)
+hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 30, probability = TRUE)
+
+mean_residuals <- mean(hist_residuals)
+sd_residuals <- sd(hist_residuals)
+curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
+```
+
+```{r}
+# Breusch-Pagan test to check for heteroscedasticity (constant variance of residuals)
+bp_test <- lmtest::bptest(model_cox)
+print(bp_test)
+```
