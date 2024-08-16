@@ -169,7 +169,6 @@ data_clean$origin <- NULL
 ```{r}
 str(data_clean)
 ```
-
 ## 2. Split data to train and test
 ```{r}
 set.seed(1)
@@ -310,6 +309,13 @@ anova(model2, model3)
 -plot
 => remove acceleration => model3
 
+### Durbin-Watson test for autocorrelation
+```{r}
+durbinWatsonTest(model3)
+```
+$H_0$: There is no autocorrelation in the residuals
+$H_a$: There is autocorrelation in the residuals
+
 ### Shapiro-Wilk test for normality
 ```{r}
 # Use Shapiro-Wilk test to test for normality of the residuals
@@ -357,7 +363,6 @@ best_lambda <- lambda[which.max(log_likelihood)]
 # Print the best lambda
 print(best_lambda)
 ```
-
 
 ```{r}
 # Build the final model with Box-Cox transformation
@@ -475,8 +480,8 @@ print(cv_model)
 predictions_log <- predict(cv_model, newdata = data_test)
 
 # Calculate performance metrics on the test data
-actual_values <- 10^(data_test$log_mgp_square)
-predict_values <- 10^((predictions_log * best_lambda + 1)^(1/best_lambda))
+actual_values <- 10^(sqrt(data_test$log_mgp_square))
+predict_values <- 10^(sqrt((predictions_log * best_lambda + 1)^(1/best_lambda)))
 results <- data.frame(
   Actual = actual_values,
   Predicted = predict_values
