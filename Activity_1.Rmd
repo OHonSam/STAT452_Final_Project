@@ -469,15 +469,17 @@ cv_model <- train(formula, data = data_train, method = "lm", trControl = train_c
 # Print the summary of the cross-validated model
 print(cv_model)
 ```
+
 ```{r}
 # Predict using the cross-validated model on the test data
-predictions <- predict(cv_model, newdata = data_test)
+predictions_log <- predict(cv_model, newdata = data_test)
 
 # Calculate performance metrics on the test data
-actual_values <- (data_test$log_mgp_square^best_lambda - 1) / best_lambda
+actual_values <- 10^(data_test$log_mgp_square)
+predict_values <- 10^((predictions_log * best_lambda + 1)^(1/best_lambda))
 results <- data.frame(
   Actual = actual_values,
-  Predicted = predictions
+  Predicted = predict_values
 )
 
 # Print the results
