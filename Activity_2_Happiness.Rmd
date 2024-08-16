@@ -32,6 +32,7 @@ print(missing_values)
 data_clean <- data %>%
   group_by(Country) %>%
   mutate(across(where(is.numeric), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+data_clean <- na.omit(data_clean)
 data_clean <- unique(data_clean)
 print(data_clean)
 # 1708 / 19
@@ -343,12 +344,51 @@ print(best_lambda)
 
 ```{r}
 best_lambda = 1.8
-model_cox = lm(((((Life.Ladder)^best_lambda) - 1)/best_lambda) ~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + Generosity + Perceptions.of.corruption + Positive.affect + `RegionSoutheast Asia` + `RegionLatin America and Caribbean`  , data = data_train)
+model_cox = lm(((((Life.Ladder)^best_lambda) - 1)/best_lambda) ~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + Generosity + Perceptions.of.corruption + Positive.affect + `RegionLatin America and Caribbean`  , data = data_train)
 summary(model_cox)
 ```
+
 
 ```{r}
 shapiro.test(residuals(model_cox))
 bp_test <- bptest(model_cox)
 print(bp_test)
+```
+
+## 6,7. Evaluation
+Using cross validation k-folds
+```{r}
+set.seed(1)
+# Define a train control with k-fold cross-validation
+train_control <- trainControl(method = "cv", number = 10)  # 10-fold cross-validation
+
+# Define the formula for the model
+formula <- as.formula(paste0("((Life.Ladder^", best_lambda, " - 1)/", best_lambda, ") ~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + Generosity + Perceptions.of.corruption + Positive.affect + `RegionLatin America and Caribbean`"))
+
+# Train the model using the training data
+cv_model <- train(formula, data = data_train, method = "lm", trControl = train_control)
+
+# Print the summary of the cross-validated model
+print(cv_model)
+```
+```{r}
+# Predict using the cross-validated model on the test data
+predictions <- predict(cv_model, newdata = data_test)
+
+# Calculate performance metrics on the test data
+actual_values <- data_test$Life.Ladder
+predict_values <- (predictions*best_lambda + 1) ^ (1/best_lambda)
+results <- data.frame(
+  Actual = actual_values,
+  Predicted = predict_values
+)
+
+# Print the results
+print(results)
+
+# Calculate and print RMSE and R-squared
+rmse <- sqrt(mean((results$Actual - results$Predicted)^2))
+r_squared <- cor(results$Actual, results$Predicted)^2
+cat("RMSE:", rmse, "\n")
+cat("R-squared:", r_squared, "\n")
 ```
