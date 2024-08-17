@@ -16,29 +16,33 @@ library(caret)
 library(lmtest)
 ```
 
-## 1. Import and clean data
+## 1. Import and preprocess data
+
+### Import dataset
 
 ```{r}
 data <- read.csv("auto_mpg.csv", header = TRUE, sep = ";")
 attach(data)
 head(data)
 dim(data)
+str(data)
 ```
-
+### Process missing values
 ```{r}
 # Replace "?" with NA in the horsepower column
 data$horsepower[data$horsepower == "?"] <- NA
 ```
 
 ```{r}
-# Convert horsepower to numeric (it was read as a factor due to "?")
+# Convert horsepower data type to numeric 
 data$horsepower <- as.numeric(as.character(data$horsepower))
 ```
 
 ```{r}
-# Check for missing values
+# Count the number of missing values
 missing_values <- sapply(data, function(x) sum(is.na(x)))
 print(missing_values)
+str(data)
 ```
 
 ```{r}
@@ -54,6 +58,7 @@ data_clean <- na.omit(data)
 # data$horsepower[is.na(data$horsepower)] <- mean(data$horsepower, na.rm = TRUE)
 ```
 
+### Process duplicate values
 ```{r}
 # Check duplicate
 # Identify duplicate rows based on all columns
@@ -61,6 +66,10 @@ duplicates <- duplicated(data_clean)
 print(data_clean[duplicates, ])
 ```
 There is no duplicate value.
+
+### Process outliers
+
+### Process categorical variables
 
 ```{r}
 # remove car_name column in data_clean
