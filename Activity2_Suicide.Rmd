@@ -293,6 +293,11 @@ summary(modelAIC)
 
 ## 4. Hypothesis testing
 
+### Durbin_Watson test for autocorrelation
+```{r}
+dwtest(modelAIC)
+
+```
 ### Shapiro-Wilk test for normality
 
 ```{r}
