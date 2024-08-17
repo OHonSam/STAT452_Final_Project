@@ -16,6 +16,7 @@ library(caret)
 library(lmtest)
 ```
 
+
 ## 1. Import and preprocess data
 
 ### Import dataset
@@ -58,26 +59,24 @@ data_clean <- na.omit(data)
 # data$horsepower[is.na(data$horsepower)] <- mean(data$horsepower, na.rm = TRUE)
 ```
 
-### Process duplicate values
+### Process duplicate rows
 ```{r}
-# Check duplicate
 # Identify duplicate rows based on all columns
 duplicates <- duplicated(data_clean)
 print(data_clean[duplicates, ])
 ```
 There is no duplicate value.
 
-### Process outliers
-
-### Process categorical variables
+### Process unnecessary variables
 
 ```{r}
-# remove car_name column in data_clean
+# Remove car_name column in data_clean
 data_clean <- dplyr::select(data_clean, -car_name)
 str(data_clean)
 detach(data)
 attach(data_clean)
 ```
+
 
 ### Descriptive statistic
 ```{r}
@@ -105,9 +104,30 @@ summary(data_clean)
 ```{r}
 pie(table(origin))
 barplot(table(origin))
+
+# Calculate the frequency of each 'origin'
+origin_counts <- table(data$origin)
+
+# Calculate the proportions
+origin_proportions <- prop.table(origin_counts)
+
+# Print the proportions
+print(origin_proportions)
 ```
+
+
 ```{r}
 pie(table(model_year))
+plot(table(model_year))
+
+# Calculate the frequency of each 'origin'
+origin_counts <- table(data$model_year)
+
+# Calculate the proportions
+origin_proportions <- prop.table(origin_counts)
+
+# Print the proportions
+print(origin_proportions)
 ```
 ```{r}
 pie(table(cylinders))
@@ -159,14 +179,14 @@ plot(log_mgp_square ~ acceleration)
 ```
 Overall, there is a correlation between mgp and horsepower, displacement, weight while there is no correlation between mgp and acceleration.
 
-### Create dummy variable
+
+### Process categorical variables
 ```{r}
 min(model_year)
 max(model_year)
 # Convert year from 1970-1982 to 1-13
-data_clean$model_year <- data_clean$model_year - 1970 + 1
+data_clean$model_year <- data_clean$model_year - 70 + 1
 ```
-
 
 ```{r}
 # Create dummy variables for 'origin' column
@@ -178,6 +198,72 @@ data_clean$origin <- NULL
 ```{r}
 str(data_clean)
 ```
+
+### Process outliers
+
+```{r}
+# Function to count outliers
+count_outliers <- function(x) {
+  Q1 <- quantile(x, 0.25)
+  Q3 <- quantile(x, 0.75)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  sum(x < lower_bound | x > upper_bound)
+}
+
+# Count outliers for each variable
+outlier_counts <- sapply(data_clean, count_outliers)
+outlier_counts_df <- data.frame(variable = names(outlier_counts), outliers = outlier_counts)
+
+# Print the number of outliers for each variable
+print(outlier_counts_df)
+```
+```{r}
+# Visualize the dataset
+data_clean %>%
+  gather(key = "variable", value = "value") %>%
+  ggplot(aes(x = value)) +
+  facet_wrap(~ variable, scales = "free") +
+  geom_histogram(bins = 30) +
+  theme_minimal()
+data_clean %>%
+  gather(key = "variable", value = "value") %>%
+  ggplot(aes(x = variable, y = value)) +
+  geom_boxplot() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+boxplot(data_clean$horsepower, main="Boxplot of horsepower")
+outliers <- boxplot.stats(data_clean$horsepower)$out
+print(outliers)
+
+```
+
+```{r}
+# Filtering data for rows with outliers in 'mpg'
+
+outlier_data <- data_clean[data_clean$horsepower %in% outliers, ]
+print(outlier_data)
+
+```
+
+
+```{r}
+# With outliers
+summary(data_clean$horsepower)
+
+# Without outliers
+data_no_outliers <- data_clean[!data_clean$horsepower %in% outliers, ]
+summary(data_no_outliers$horsepower)
+```
+
+```{r}
+summary(data_clean)
+```
+
 ## 2. Split data to train and test
 ```{r}
 set.seed(1)
