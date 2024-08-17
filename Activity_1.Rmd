@@ -313,14 +313,11 @@ summary(model2)
 summary(model3)
 anova(model2, model3)
 ```
--p_value >< correlation
--R-square change
--plot
-=> remove acceleration => model3
+p_value = 0.045 < $\alpha$ => Choose model 2 (AIC model) 
 
 ### Durbin-Watson test for autocorrelation
 ```{r}
-durbinWatsonTest(model3)
+durbinWatsonTest(model2)
 ```
 $H_0$: There is no autocorrelation in the residuals
 $H_a$: There is autocorrelation in the residuals
@@ -328,12 +325,12 @@ $H_a$: There is autocorrelation in the residuals
 ### Shapiro-Wilk test for normality
 ```{r}
 # Use Shapiro-Wilk test to test for normality of the residuals
-shapiro.test(residuals(model3))
+shapiro.test(residuals(model2))
 
 # Plot residuals to visually check for normality
 par(mfrow=c(1,2))
 
-hist_residuals <- residuals(model3)
+hist_residuals <- residuals(model2)
 hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 30, probability = TRUE)
 
 mean_residuals <- mean(hist_residuals)
@@ -358,11 +355,11 @@ $H_0$: The residuals have constant variance
 
 $H_a$: The residuals do not have constant variance
 
-p-value = 0.005774 \< $\alpha$ = 0.05, we have enough evidence to reject the null hypothesis, which suggests that the residuals don't have constant variance.
+p-value = 0.005774 < $\alpha$ = 0.05, we have enough evidence to reject the null hypothesis, which suggests that the residuals don't have constant variance.
 
 ### Box-Cox Transformation
 ```{r}
-boxcox_result <- boxcox(model3, plotit = TRUE)
+boxcox_result <- boxcox(model2, plotit = TRUE)
 lambda <- boxcox_result$x
 log_likelihood <- boxcox_result$y
 
@@ -376,9 +373,13 @@ print(best_lambda)
 ```{r}
 # Build the final model with Box-Cox transformation
 best_lambda = 0.5
-model_cox = lm((((data_train$log_mgp_square^best_lambda) - 1)/best_lambda) ~ data_train$weight + data_train$model_year + data_train$north_american)
+model_cox = lm((((data_train$log_mgp_square^best_lambda) - 1)/best_lambda) ~ data_train$weight + data_train$model_year + data_train$north_american + data_train$acceleration)
 summary(model_cox)
 ```
+```{r}
+durbinWatsonTest(model_cox)
+```
+
 ```{r}
 # Check normality of residuals
 residuals <- residuals(model_cox)
@@ -387,11 +388,7 @@ residuals <- residuals(model_cox)
 shapiro_test <- shapiro.test(residuals)
 print(shapiro_test)
 
-## Q-Q plot
-qqnorm(residuals)
-qqline(residuals, col = "red")
-
-## Plot residuals to visually check for normality
+# Plot residuals to visually check for normality
 par(mfrow=c(1,2))
 
 hist_residuals <- residuals(model_cox)
@@ -400,6 +397,9 @@ hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 
 mean_residuals <- mean(hist_residuals)
 sd_residuals <- sd(hist_residuals)
 curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
+
+qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
+qqline(hist_residuals, col = "red")
 ```
 
 $H_0$: the residuals are normally distributed
@@ -413,28 +413,6 @@ We can see that the scatter points of residuals is quite close to qqline. In add
 bp_test <- bptest(model_cox)
 print(bp_test)
 ```
-```{r}
-# Check normality of residuals
-residuals <- residuals(model_cox)
-
-# Shapiro-Wilk test for normality
-shapiro_test <- shapiro.test(residuals)
-print(shapiro_test)
-
-# Q-Q plot
-qqnorm(residuals)
-qqline(residuals, col = "red")
-
-# Plot residuals to visually check for normality
-par(mfrow=c(1,2))
-
-hist_residuals <- residuals(model_cox)
-hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 30, probability = TRUE)
-
-mean_residuals <- mean(hist_residuals)
-sd_residuals <- sd(hist_residuals)
-curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
-```
 $H_0$: The residuals have constant variance
 
 $H_a$: The residuals do not have constant variance
@@ -446,9 +424,9 @@ p-value = 0.1222 \> $\alpha$ = 0.05, we don't have enough evidence to reject the
 summary(model_cox)
 ```
 ### Quantile
-- 25% of residuals are less than -0.06215  
+- 25% of residuals are less than -0.06215
 - 50% of residuals are above 0.00484, 50% of residuals are below 0.00484  
-- 75% of residuals are less than 0.06370  
+- 75% of residuals are less than 0.06370
 
 ### Coefficent of predictors
 Estimated Regression model: $\hat{\frac{(log\_mgp\_square)^{\lambda_{best}} - 1}{\lambda_{best}}} = \hat\beta_0 + \hat\beta_1 \cdot weight + \hat \beta_2 \cdot model\_year + \hat\beta_3 \cdot north\_american$
@@ -479,9 +457,6 @@ formula <- as.formula(paste0("((log_mgp_square^", best_lambda, " - 1)/", best_la
 
 # Train the model using the training data
 cv_model <- train(formula, data = data_train, method = "lm", trControl = train_control)
-
-# Print the summary of the cross-validated model
-print(cv_model)
 ```
 
 ```{r}
@@ -492,16 +467,16 @@ predictions_log <- predict(cv_model, newdata = data_test)
 actual_values <- 10^(sqrt(data_test$log_mgp_square))
 predict_values <- 10^(sqrt((predictions_log * best_lambda + 1)^(1/best_lambda)))
 results <- data.frame(
-  Actual = actual_values,
-  Predicted = predict_values
+  actual_mpg = actual_values,
+  predict_mpg = predict_values
 )
 
 # Print the results
 print(results)
 
 # Calculate and print RMSE and R-squared
-rmse <- sqrt(mean((results$Actual - results$Predicted)^2))
-r_squared <- cor(results$Actual, results$Predicted)^2
+rmse <- sqrt(mean((results$actual_mpg - results$predict_mpg)^2))
+r_squared <- cor(results$actual_mpg, results$predict_mpg)^2
 cat("RMSE:", rmse, "\n")
 cat("R-squared:", r_squared, "\n")
 ```
