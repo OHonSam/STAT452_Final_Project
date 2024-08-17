@@ -19,8 +19,8 @@ library(lmtest)
 ```{r}
 data <- read.csv("world-happiness-report-with-regions.csv", header = TRUE, sep = ",")
 attach(data)
+dim(data)
 str(data)
-head(data)
 ```
 
 ```{r}
@@ -352,6 +352,7 @@ summary(model_cox)
 ```{r}
 shapiro.test(residuals(model_cox))
 bp_test <- bptest(model_cox)
+durbinWatsonTest(model_cox)
 print(bp_test)
 ```
 
