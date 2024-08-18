@@ -207,58 +207,209 @@ ggplot(year_summary, aes(x = "", y = percentage, fill = year_group)) +
 ```
 
 ```{r}
-hist(data_clean$Log.GDP.per.capita, breaks = 20)
+ggplot(data = data_clean, aes(x = Log.GDP.per.capita)) +
+  geom_histogram(binwidth = NULL, fill = "lightblue", color = "black") +
+  labs(title = "Log.GDP.per.capita Distribution",
+       x = "Log.GDP.per.capita",
+       y = "Frequency") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5, margin = margin(b = 20)),
+    strip.background = element_rect(fill = "grey90", color = NA),
+    strip.text = element_text(face = "bold", size = 12),
+    panel.spacing = unit(1, "lines"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "grey90", fill = NA),
+    axis.text.x = element_text(angle = 45, hjust = 1))
 # Left-skewed distribution, many countries have average log GDP per capita
 ```
 
 ```{r}
-hist(Social.support, breaks = 30)
+ggplot(data = data_clean, aes(x = Social.support)) +
+  geom_histogram(binwidth = NULL, fill = "lightblue", color = "black") +
+  labs(title = "Social Support Distribution",
+       x = "Social support",
+       y = "Frequency") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5, margin = margin(b = 20)),
+    strip.background = element_rect(fill = "grey90", color = NA),
+    strip.text = element_text(face = "bold", size = 12),
+    panel.spacing = unit(1, "lines"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "grey90", fill = NA),
+    axis.text.x = element_text(angle = 45, hjust = 1))
 # average of national responses on the question... 
 # left-skewed, most responses were yes
 # highest values 0.9
 ```
 
 ```{r}
-hist(Freedom.to.make.life.choices, breaks = 30)
+ggplot(data = data_clean, aes(x = Freedom.to.make.life.choices)) +
+  geom_histogram(binwidth = NULL, fill = "lightblue", color = "black") +
+  labs(title = "Freedom Distribution",
+       x = "Freedom to make life choices",
+       y = "Frequency") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5, margin = margin(b = 20)),
+    strip.background = element_rect(fill = "grey90", color = NA),
+    strip.text = element_text(face = "bold", size = 12),
+    panel.spacing = unit(1, "lines"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "grey90", fill = NA),
+    axis.text.x = element_text(angle = 45, hjust = 1))
 # average of national responses on the question... 
 # left-skewed, most responses were yes
 ```
 
 ```{r}
-hist(Healthy.life.expectancy.at.birth, breaks = 40)
+ggplot(data = data_clean, aes(x = Generosity)) +
+  geom_histogram(binwidth = NULL, fill = "lightblue", color = "black") +
+  labs(title = "Generosity Distribution",
+       x = "Generosity",
+       y = "Frequency") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5, margin = margin(b = 20)),
+    strip.background = element_rect(fill = "grey90", color = NA),
+    strip.text = element_text(face = "bold", size = 12),
+    panel.spacing = unit(1, "lines"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "grey90", fill = NA),
+    axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data = data_clean, aes(x = Healthy.life.expectancy.at.birth)) +
+  geom_histogram(binwidth = NULL, fill = "lightblue", color = "black") +
+  labs(title = "Healthy Life Expectancy Distribution",
+       x = "Healthy life expectancy at birth",
+       y = "Frequency") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5, margin = margin(b = 20)),
+    strip.background = element_rect(fill = "grey90", color = NA),
+    strip.text = element_text(face = "bold", size = 12),
+    panel.spacing = unit(1, "lines"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "grey90", fill = NA),
+    axis.text.x = element_text(angle = 45, hjust = 1))
 # average life expectancy
 # most people expect their age between 65-68 or 71-72
 ```
+
+
 ```{r}
-hist(Generosity, breaks = 30)
-# Residual of regressing national average of response to the question...
-# residual -> negative is possible
-# most people say no
-```
-```{r}
-hist(Perceptions.of.corruption, breaks = 30)
+ggplot(data = data_clean, aes(x = Perceptions.of.corruption)) +
+  geom_histogram(binwidth = NULL, fill = "lightblue", color = "black") +
+  labs(title = "Perception of Corruption Distribution",
+       x = "Perceptions of corruption",
+       y = "Frequency") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5, margin = margin(b = 20)),
+    strip.background = element_rect(fill = "grey90", color = NA),
+    strip.text = element_text(face = "bold", size = 12),
+    panel.spacing = unit(1, "lines"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "grey90", fill = NA),
+    axis.text.x = element_text(angle = 45, hjust = 1))
 # average of national responses on the 2 questions on corruption
 # most people response 2 yes
 ```
+
 ```{r}
-hist(Positive.affect, breaks = 30)
+ggplot(data = data_clean, aes(x = Positive.affect)) +
+  geom_histogram(binwidth = NULL, fill = "lightblue", color = "black") +
+  labs(title = "Positive Affect Distribution",
+       x = "Positive affect",
+       y = "Frequency") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5, margin = margin(b = 20)),
+    strip.background = element_rect(fill = "grey90", color = NA),
+    strip.text = element_text(face = "bold", size = 12),
+    panel.spacing = unit(1, "lines"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "grey90", fill = NA),
+    axis.text.x = element_text(angle = 45, hjust = 1))
 # average of 3 positive affect measures
 # left-skewed
 ```
+
 ```{r}
-hist(Negative.affect, breaks = 30)
+ggplot(data = data_clean, aes(x = Negative.affect)) +
+  geom_histogram(binwidth = NULL, fill = "lightblue", color = "black") +
+  labs(title = "Negative Affect Distribution",
+       x = "Negative affect",
+       y = "Frequency") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5, margin = margin(b = 20)),
+    strip.background = element_rect(fill = "grey90", color = NA),
+    strip.text = element_text(face = "bold", size = 12),
+    panel.spacing = unit(1, "lines"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "grey90", fill = NA),
+    axis.text.x = element_text(angle = 45, hjust = 1))
 # average of 3 negative effects per country
 # right-skewed
 # most people feels little negative effect
 ```
+
 ```{r}
-hist(Life.Ladder, breaks = 30)
+ggplot(data = data_clean, aes(x = Life.Ladder)) +
+  geom_histogram(binwidth = NULL, fill = "lightblue", color = "black") +
+  labs(title = "Ladder Score Distribution",
+       x = "Life Ladder",
+       y = "Frequency") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5, margin = margin(b = 20)),
+    strip.background = element_rect(fill = "grey90", color = NA),
+    strip.text = element_text(face = "bold", size = 12),
+    panel.spacing = unit(1, "lines"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "grey90", fill = NA),
+    axis.text.x = element_text(angle = 45, hjust = 1))
 # the ladder score (happiness score), from 0 to 10
 # looks approximately normal
 ```
 
 ```{r}
-plot(Life.Ladder ~ Negative.affect, data = data_clean)
+ggplot(data_clean, aes(x = Negative.affect, y = Life.Ladder)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_color_viridis_d() +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "bottom"
+  ) +
+  labs(
+    title = "Scatterplot of Life Ladder vs. Negative Affect",
+    x = "Negative affect",
+    y = "Life Ladder"
+  ) +
+  geom_smooth(method = "lm", se = FALSE, color = "darkgrey")
 # Lots of outliers in the Negative.affect plot
 # Life.Ladder plot looks normal
 # The relationship between the two variables is not clear
@@ -267,43 +418,140 @@ cor(Life.Ladder, Negative.affect)
 ```
 
 ```{r}
-plot(Life.Ladder ~ Positive.affect, data = data_clean)
+ggplot(data_clean, aes(x = Positive.affect, y = Life.Ladder)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_color_viridis_d() +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "bottom"
+  ) +
+  labs(
+    title = "Scatterplot of Life Ladder vs. Positive Affect",
+    x = "Positive affect",
+    y = "Life Ladder"
+  ) +
+  geom_smooth(method = "lm", se = FALSE, color = "darkgrey")
 cor(Life.Ladder, Positive.affect)
 # Relationship: positive relationship between the two variables, but not quite clear (0.562)
 ```
 
 ```{r}
-plot(Life.Ladder ~ Log.GDP.per.capita, data = data_clean)
+ggplot(data_clean, aes(x = Log.GDP.per.capita, y = Life.Ladder)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_color_viridis_d() +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "bottom"
+  ) +
+  labs(
+    title = "Scatterplot of Life Ladder vs. Log GDP per capita",
+    x = "Log GDP per capita",
+    y = "Life Ladder"
+  ) +
+  geom_smooth(method = "lm", se = FALSE, color = "darkgrey")
+
 cor(Life.Ladder, Log.GDP.per.capita)
 # Relationship: positive relationship between the two variables, obvious positive relationship
 ```
 
 ```{r}
-plot(Life.Ladder ~ Healthy.life.expectancy.at.birth, data = data_clean)
+ggplot(data_clean, aes(x = Healthy.life.expectancy.at.birth, y = Life.Ladder)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_color_viridis_d() +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "bottom"
+  ) +
+  labs(
+    title = "Scatterplot of Life Ladder vs. Healthy Life Expectancy",
+    x = "Healthy life expectancy at birth",
+    y = "Life Ladder"
+  ) +
+  geom_smooth(method = "lm", se = FALSE, color = "darkgrey")
+
 cor(Life.Ladder, Healthy.life.expectancy.at.birth)
 # Relationship: positive relationship between the two variables, clear relationship
 ```
 
 ```{r}
-plot(Life.Ladder ~ Social.support, data = data_clean)
+ggplot(data_clean, aes(x = Social.support, y = Life.Ladder)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_color_viridis_d() +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "bottom"
+  ) +
+  labs(
+    title = "Scatterplot of Life Ladder vs. Social Support",
+    x = "Social support",
+    y = "Life Ladder"
+  ) +
+  geom_smooth(method = "lm", se = FALSE, color = "darkgrey")
+
 cor(Life.Ladder, Social.support)
 # Relationship: positive relationship between the two variables, clear relationship
 ```
 
 ```{r}
-plot(Life.Ladder ~ Freedom.to.make.life.choices, data = data_clean)
+ggplot(data_clean, aes(x = Freedom.to.make.life.choices, y = Life.Ladder)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_color_viridis_d() +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "bottom"
+  ) +
+  labs(
+    title = "Scatterplot of Life Ladder vs. Freedom to make life choices",
+    x = "Freedom to make life choices",
+    y = "Life Ladder"
+  ) +
+  geom_smooth(method = "lm", se = FALSE, color = "darkgrey")
+
 cor(Life.Ladder, Freedom.to.make.life.choices)
 # Relationship: seems positive, but not quite clear
 ```
 
 ```{r}
-plot(Life.Ladder ~ Generosity, data = data_clean)
+ggplot(data_clean, aes(x = Generosity, y = Life.Ladder)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_color_viridis_d() +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "bottom"
+  ) +
+  labs(
+    title = "Scatterplot of Life Ladder vs. Generosity",
+    x = "Generosity",
+    y = "Life Ladder"
+  ) +
+  geom_smooth(method = "lm", se = FALSE, color = "darkgrey")
+
 cor(Life.Ladder, Generosity)
 # Relationship: no relationship
 ```
 
 ```{r}
-plot(Life.Ladder ~ Perceptions.of.corruption, data = data_clean)
+ggplot(data_clean, aes(x = Perceptions.of.corruption, y = Life.Ladder)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_color_viridis_d() +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "bottom"
+  ) +
+  labs(
+    title = "Scatterplot of Life Ladder vs. Perceptions of corruption",
+    x = "Perceptions of corruption",
+    y = "Life Ladder"
+  ) +
+  geom_smooth(method = "lm", se = FALSE, color = "darkgrey")
+
 cor(Life.Ladder, Perceptions.of.corruption)
 # Relationship: negative relationship, but not clear
 ```
@@ -312,6 +560,39 @@ cor(Life.Ladder, Perceptions.of.corruption)
 boxplot(Life.Ladder ~ year, data = data_clean)
 # Shows a (quite) consistent ladder score over years
 ```
+```{r}
+data_temp <- data.frame(
+  Life.Ladder = data_clean$Life.Ladder,
+  Log.GDP.per.capita = data_clean$Log.GDP.per.capita,
+  Social.support = data_clean$Social.support,
+  Healthy.life.expectancy.at.birth = data_clean$Healthy.life.expectancy.at.birth,
+  Freedom.to.make.life.choices = data_clean$Freedom.to.make.life.choices,
+  Generosity = data_clean$Generosity,
+  Perceptions.of.corruption = data_clean$Perceptions.of.corruption,
+  Positive.affect = data_clean$Positive.affect,
+  Negative.affect = data_clean$Negative.affect
+)
+
+# Compute the correlation matrix
+cor_matrix <- cor(data_temp)
+
+# Melt the correlation matrix
+melted_cor_matrix <- melt(cor_matrix)
+
+# Create the heatmap
+ggplot(melted_cor_matrix, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Correlation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  coord_fixed() +
+  labs(title = "Correlation Matrix Heatmap",
+       x = "",
+       y = "")
+```
+
 ```{r}
 boxplot(Life.Ladder ~ Region, data = data_clean)
 ```
