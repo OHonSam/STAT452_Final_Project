@@ -260,6 +260,13 @@ car::vif(model)
 ```
 
 ```{r}
+cor(data_train$log_suicides_no, data_train$regionEurope)
+model_regionEurope = lm(regionEurope ~ . -transform_gdp_for_year -log_suicides_no, data = data_train)
+summary(model_regionEurope)
+```
+
+
+```{r}
 model = lm(log_suicides_no ~ . -transform_gdp_for_year -regionEurope, data = data_train)
 summary(model)
 car::vif(model)
@@ -274,14 +281,8 @@ modInter = lm(log_suicides_no ~ year + transform_population + regionAsia + regio
 ```
 
 ```{r}
-# model2 = MASS::stepAIC(modInter, direction = "both", scope = list(lower = modZero, upper = modFull), k = 2)
-# model3 = MASS::stepAIC(modInter, direction = "both", scope = list(lower = modZero, upper = modFull), k = log(nrow(data_train)))
-```
-
-```{r}
 modelAIC = MASS::stepAIC(modFull, direction = "backward", scope = list(lower = modZero, upper = modFull), k = 2)
 ```
-
 
 ```{r}
 summary(modelAIC)
@@ -297,7 +298,7 @@ lmtest::dwtest(modelAIC)
 
 ```{r}
 # Use Shapiro-Wilk test to test for normality of the residuals
-set.seed(123) # For reproducibility
+set.seed(22) # For reproducibility
 subsample_residuals <- sample(residuals(modelAIC), size = 5000)
 shapiro.test(subsample_residuals)
 ```
@@ -321,8 +322,6 @@ qqline(hist_residuals, col = "red")
 
 ### Studentized Breusch-Pagan test for heteroscedasticity
 ```{r}
-# Set higher precision for displaying numbers
-options(digits = 22)
 bp_test <- lmtest::bptest(modelAIC)
 print(bp_test)
 ```
@@ -352,6 +351,11 @@ summary(model_cox)
 ```
 
 ```{r}
+lmtest::dwtest(model_cox)
+```
+
+
+```{r}
 # Use Shapiro-Wilk test to test for normality of the residuals
 set.seed(22) # For reproducibility
 subsample_residuals <- sample(residuals(model_cox), size = 5000)
@@ -374,12 +378,11 @@ qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
 qqline(hist_residuals, col = "red")
 ```
 
-### Studentized Breusch-Pagan test for heteroscedasticity
-```{r}
 
+```{r}
+# Studentized Breusch-Pagan test for heteroscedasticity
 bp_test <- lmtest::bptest(model_cox)
 print(bp_test)
-
 ```
 The BP statistic has decreased from 3230.76 to 2943.80 after the Box-Cox transformation. This suggests that the transformation has helped reduce heteroscedasticity, but it has not completely eliminated it.
 
