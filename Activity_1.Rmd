@@ -117,19 +117,22 @@ print(origin_proportions)
 
 
 ```{r}
+# Descriptive statistics for 'model_year'
 pie(table(model_year))
 plot(table(model_year))
 
-# Calculate the frequency of each 'origin'
+## Calculate the frequency of each 'origin'
 origin_counts <- table(data$model_year)
 
-# Calculate the proportions
+## Calculate the proportions
 origin_proportions <- prop.table(origin_counts)
 
-# Print the proportions
+## Print the proportions
 print(origin_proportions)
 ```
+
 ```{r}
+# Descriptive statistics for 'cylinders'
 pie(table(cylinders))
 barplot(table(cylinders))
 ```
@@ -139,42 +142,56 @@ The product from North American accounted for the highest percentage while the o
 model_year distribution is approximately distributed equally through years.
 
 ```{r}
+# Descriptive statistics for 'mgp'
 hist(mgp, breaks = 50)
 ```
 The mgp distribution is right skewed. Hence, we process this by taking log(mgp)^2
 
 ```{r}
+log_mgp = log10(data_clean$mgp)
+hist(log_mgp, breaks = 25)
+
 log_mgp_square = (log10(data_clean$mgp))^2
-data_clean$log_mgp_square <- log_mgp_square
 hist(log_mgp_square, breaks = 25)
+
+data_clean$log_mgp_square <- log_mgp_square
 ```
 
 
 ```{r}
+# Boxplot of 'log_mgp_square' by 'origin'
 boxplot(log_mgp_square ~ origin)
 ```
 The highest mgp consumption coming from Asia countries while the lowest one coming from North America. It indicates that the engines from North America might be better than the other areas.
 
 ```{r}
+# Boxplot of 'log_mgp_square' by 'model_year'
 boxplot(log_mgp_square ~ model_year)
 ```
 There is a rising trend of mgp through out the period from 1970 to 1982.
 
 ```{r}
+# Boxplot of 'log_mgp_square' by 'cylinders'
 boxplot(log_mgp_square ~ cylinders)
+# Boxplot of 'horsepower' by 'cylinders'
 boxplot(horsepower ~ cylinders, data = data_clean)
 ```
 Overall, engines having more cylinders seems to be stronger while consuming less fuel.
 
 ```{r}
+# Boxplot of 'displacement' by 'cylinders'
 boxplot(displacement ~ cylinders)
 ```
 The engines having more cylinders seem to have larger displacement.
 
 ```{r}
+# Scatter plot of 'log_mgp_square' vs. 'horsepower'
 plot(log_mgp_square ~ horsepower)
+# Scatter plot of 'log_mgp_square' vs. 'displacement'
 plot(log_mgp_square ~ displacement)
+# Scatter plot of 'log_mgp_square' vs. 'weight'
 plot(log_mgp_square ~ weight)
+# Scatter plot of 'log_mgp_square' vs. 'acceleration'
 plot(log_mgp_square ~ acceleration)
 ```
 Overall, there is a correlation between mgp and horsepower, displacement, weight while there is no correlation between mgp and acceleration.
