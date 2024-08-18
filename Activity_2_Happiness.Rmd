@@ -14,8 +14,28 @@ library(reshape2)
 library(faraway)
 library(caret)
 library(lmtest)
+library(RColorBrewer)
 ```
-## 1. Import data 
+## 0. Preprocess data
+```{r}
+# Read the CSV files into data frames
+df_a <- read.csv("world-happiness-report-2021.csv")
+df_b <- read.csv("world-happiness-report.csv")
+
+# Create a mapping from df_a
+country_regions <- df_a %>% 
+  dplyr::select(Country, Region) %>% 
+  distinct()
+
+# Add the 'Region' column to df_b
+df_b <- df_b %>% 
+  left_join(country_regions, by = "Country")
+
+# Reorder the column (move to after the Country column)
+df_b <- df_b %>% relocate(Region, .after = Country)
+write.csv(df_b, "world-happiness-report-with-regions.csv", row.names = FALSE)
+```
+## 1. Import data
 ```{r}
 data <- read.csv("world-happiness-report-with-regions.csv", header = TRUE, sep = ",")
 attach(data)
@@ -44,40 +64,93 @@ attach(data_clean)
 ##3 Descriptive statistics
 ### Visualization
 ```{r}
-ggplot(data, aes(y = Freedom.to.make.life.choices)) +
+ggplot(data_clean, aes(y = Freedom.to.make.life.choices)) +
   geom_boxplot(fill = "lightblue", color = "black") +
-  labs(title = "...", y = "Freedom")
+  labs(title = "Freedom", y = " ") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
 
 ggplot(data, aes(y = Life.Ladder)) +
   geom_boxplot(fill = "lightblue", color = "black") +
-  labs(title = "...", y = "Ladder")
+  labs(title = "Life Ladder", y = " ") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
 
+ggplot(data_clean, aes(y = Positive.affect)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Positive", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
 
-ggplot(data, aes(y = Positive.affect)) +
+ggplot(data_clean, aes(y = Negative.affect)) +
   geom_boxplot(fill = "lightblue", color = "black") +
-  labs(title = "...", y = "Positive")
+  labs(title = "Negative", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
 
-ggplot(data, aes(y = Negative.affect)) +
+ggplot(data_clean, aes(y = Generosity)) +
   geom_boxplot(fill = "lightblue", color = "black") +
-  labs(title = "...", y = "Negative")
+  labs(title = "Generosity", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+ggplot(data_clean, aes(y = Log.GDP.per.capita)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Log GDP", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
 
-ggplot(data, aes(y = Generosity)) +
+ggplot(data_clean, aes(y = Social.support)) +
   geom_boxplot(fill = "lightblue", color = "black") +
-  labs(title = "...", y = "Generosity")
-ggplot(data, aes(y = Log.GDP.per.capita)) +
-  geom_boxplot(fill = "lightblue", color = "black") +
-  labs(title = "...", y = "Log GDP")
+  labs(title = "Social support", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
 
-ggplot(data, aes(y = Social.support)) +
+ggplot(data_clean, aes(y = Healthy.life.expectancy.at.birth)) +
   geom_boxplot(fill = "lightblue", color = "black") +
-  labs(title = "...", y = "Social support")
-
-ggplot(data, aes(y = Healthy.life.expectancy.at.birth)) +
+  labs(title = "Healthy life expectancy", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+ggplot(data_clean, aes(y = Perceptions.of.corruption)) +
   geom_boxplot(fill = "lightblue", color = "black") +
-  labs(title = "...", y = "Healthy life expectancy")
-ggplot(data, aes(y = Perceptions.of.corruption)) +
-  geom_boxplot(fill = "lightblue", color = "black") +
-  labs(title = "...", y = "Perceptions of corruption")
+  labs(title = "Perceptions of corruption", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
 ```
 ### Cook's distance to remove outliers
 ```{r}
@@ -104,8 +177,32 @@ dim(data_clean)
 ```
 
 ```{r}
-pie(table(year))
-barplot(table(year))
+# Create a summary of the year data
+year_summary <- data_clean %>%
+  count(year) %>%
+  mutate(percentage = n / sum(n)) %>%
+  mutate(year_group = ifelse(percentage < 0.055, "Other", as.character(year))) %>%
+  group_by(year_group) %>%
+  summarize(percentage = sum(percentage)) %>%
+  arrange(desc(percentage))
+
+# Generate a color palette
+n_colors <- nrow(year_summary)
+colors <- colorRampPalette(brewer.pal(8, "Set3"))(n_colors)
+
+# Create the pie chart
+ggplot(year_summary, aes(x = "", y = percentage, fill = year_group)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  labs(title = "Number of countries taking the survey (2005-2020)", fill = "Year") +
+  geom_text(aes(label = paste0(round(percentage * 100, 1), "%")), 
+            position = position_stack(vjust = 0.5)) +
+  scale_fill_manual(values = colors, name = "Year") +
+  theme(legend.position = "right",
+        plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        legend.title = element_text(size = 12, face = "bold"),
+        legend.text = element_text(size = 10))
 # More countries take survey from 2006
 ```
 
