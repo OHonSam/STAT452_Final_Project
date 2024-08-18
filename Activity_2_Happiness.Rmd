@@ -37,7 +37,7 @@ write.csv(df_b, "world-happiness-report-with-regions.csv", row.names = FALSE)
 ```
 ## 1. Import data
 ```{r}
-data <- read.csv("world-happiness-report-with-regions.csv", header = TRUE, sep = ",")
+data <- read.csv("world-happiness-report-with-regions_1.csv", header = TRUE, sep = ",")
 attach(data)
 ```
 
@@ -594,7 +594,20 @@ ggplot(melted_cor_matrix, aes(x = Var1, y = Var2, fill = value)) +
 ```
 
 ```{r}
-boxplot(Life.Ladder ~ Region, data = data_clean)
+# Create the plot
+ggplot(data_clean, aes(x = data_clean$Region, y = Life.Ladder, fill = Region)) +
+  geom_boxplot() +
+  scale_fill_viridis_d() +  # Use viridis color palette
+  labs(title = "Ladder Score by Region",
+       y = "Ladder Score",
+       x = NULL) +  # Remove x-axis label as it's redundant
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    legend.position = "none",  # Remove legend as colors are already on x-axis
+    plot.title = element_text(hjust = 0.5, size = 16),
+    axis.title.y = element_text(size = 12)
+  )
 ```
 ## 4. Model Building
 
@@ -633,19 +646,6 @@ summary(model)
 ```
 ### Check multicollinearity
 ```{r}
-vif_values = vif(model)
-max_vif <- max(vif_values)
-while (max_vif > 10) {
-  max_vif_var <- names(vif_values[vif_values == max_vif])
-  data_train <- data_train[ , !(names(data_train) %in% max_vif_var)]
-  model <- lm(Life.Ladder ~ . , data = data_train)
-  vif_values <- vif(model)
-  max_vif <- max(vif_values)
-}
-```
-
-
-```{r}
 model <- lm(Life.Ladder ~ . , data = data_train)
 vif(model)
 print(max(vif(model)))
@@ -659,7 +659,6 @@ summary(test)
 ```
 ```{r}
 model <- lm(Life.Ladder ~ . - Healthy.life.expectancy.at.birth, data = data_train)
-summary(model)
 vif(model)
 ```
 ### Variable selection
@@ -688,10 +687,10 @@ anova(model2, model3)
 ```
 ### Hypothesis testing
 ```{r}
-shapiro.test(residuals(model3))
+shapiro.test(residuals(model2))
 par(mfrow=c(1,2))
 
-hist_residuals <- residuals(model3)
+hist_residuals <- residuals(model2)
 hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 100, probability = TRUE)
 
 mean_residuals <- mean(hist_residuals)
@@ -703,7 +702,7 @@ qqline(hist_residuals, col = "red")
 ```
 
 ```{r}
-bp_test <- bptest(model3)
+bp_test <- bptest(model2)
 print(bp_test)
 # Fail BP test, meaning that the variance is not constant -> Apply Box-cox transformation
 ```
@@ -713,9 +712,9 @@ print(bp_test)
 # Life.Ladder ~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + 
 #    Generosity + Perceptions.of.corruption + Positive.affect + 
 #    `RegionLatin America and Caribbean` + `RegionSoutheast Asia` + 
-#    `RegionSub-Saharan Africa` + `RegionWestern Europe` + `RegionNorth America and ANZ`
+#    `RegionSub-Saharan Africa` + `RegionWestern Europe` + `RegionNorth America and ANZ`+ `RegionCommonwealth of Independent States`
 model_cox = lm(Life.Ladder~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + 
-    Generosity + Perceptions.of.corruption + Positive.affect + `RegionLatin America and Caribbean`  , data = data_train)
+    Generosity + Perceptions.of.corruption + Positive.affect + `RegionLatin America and Caribbean` , data = data_train)
 summary(model_cox)
 boxcox_result <- boxcox(model_cox, plotit = TRUE)
 lambda <- boxcox_result$x
@@ -725,10 +724,9 @@ best_lambda <- lambda[which.max(log_likelihood)]
 # Print the best lambda
 print(best_lambda)
 ```
-
 ```{r}
 best_lambda = 1.8
-model_cox = lm(((((Life.Ladder)^best_lambda) - 1)/best_lambda) ~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + Generosity + Perceptions.of.corruption + Positive.affect + `RegionLatin America and Caribbean`  , data = data_train)
+model_cox = lm(((((Life.Ladder)^best_lambda) - 1)/best_lambda) ~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + Generosity + Perceptions.of.corruption + Positive.affect + `RegionLatin America and Caribbean` , data = data_train)
 summary(model_cox)
 ```
 
