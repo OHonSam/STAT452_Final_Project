@@ -15,26 +15,25 @@ library(faraway)
 library(caret)
 library(lmtest)
 ```
-## 1. Import and clean data 
+## 1. Import data 
 ```{r}
 data <- read.csv("world-happiness-report-with-regions.csv", header = TRUE, sep = ",")
 attach(data)
-dim(data)
-str(data)
 ```
 
 ```{r}
 missing_values <- sapply(data, function(x) sum(is.na(x)))
 print(missing_values)
 ```
-
+## 2. Clean data
 ```{r}
 data_clean <- data %>%
   group_by(Country) %>%
   mutate(across(where(is.numeric), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
 data_clean <- na.omit(data_clean)
 data_clean <- unique(data_clean)
-print(data_clean)
+dim(data_clean)
+str(data_clean)
 # 1708 / 19
 ```
 
@@ -42,6 +41,8 @@ print(data_clean)
 str(data_clean)
 attach(data_clean)
 ```
+##3 Descriptive statistics
+### Visualization
 ```{r}
 ggplot(data, aes(y = Freedom.to.make.life.choices)) +
   geom_boxplot(fill = "lightblue", color = "black") +
@@ -78,6 +79,7 @@ ggplot(data, aes(y = Perceptions.of.corruption)) +
   geom_boxplot(fill = "lightblue", color = "black") +
   labs(title = "...", y = "Perceptions of corruption")
 ```
+### Cook's distance to remove outliers
 ```{r}
 model <- lm(Life.Ladder ~ . -Country - Region, data = data_clean)
 
@@ -96,6 +98,7 @@ influential <- as.numeric(names(cooksd)[(cooksd > 4/length(cooksd))])
 data_clean <- data_clean[-influential, ]
 
 ```
+### Summarize the data
 ```{r}
 dim(data_clean)
 ```
@@ -215,6 +218,7 @@ boxplot(Life.Ladder ~ year, data = data_clean)
 ```{r}
 boxplot(Life.Ladder ~ Region, data = data_clean)
 ```
+## 4. Model Building
 
 ```{r}
 data_clean <- as.data.frame(data_clean)
@@ -234,7 +238,7 @@ data_clean <- dplyr::select(data_clean, -Region)
 # Display the first few rows of the data frame with dummy variables
 head(data_clean)
 ```
-
+### Split data train and test
 ```{r}
 set.seed(1)
 sample_size <- floor(0.8 * nrow(data_clean))
@@ -249,7 +253,7 @@ attach(data_train)
 model = lm(Life.Ladder ~ . , data = data_train)
 summary(model)
 ```
-
+### Check multicollinearity
 ```{r}
 vif_values = vif(model)
 max_vif <- max(vif_values)
@@ -280,6 +284,7 @@ model <- lm(Life.Ladder ~ . - Healthy.life.expectancy.at.birth, data = data_trai
 summary(model)
 vif(model)
 ```
+### Variable selection
 ```{r}
 modFull = lm(Life.Ladder ~ . - Healthy.life.expectancy.at.birth, data = data_train)
 modZero = lm(Life.Ladder ~ 1, data = data_train)
@@ -303,7 +308,7 @@ anova(model2, model3)
 # However, it's not worth to keep the model with more variables but less than 1% improvement in R^2
 # We will keep the model with fewer variables
 ```
-
+### Hypothesis testing
 ```{r}
 shapiro.test(residuals(model3))
 par(mfrow=c(1,2))
@@ -324,6 +329,7 @@ bp_test <- bptest(model3)
 print(bp_test)
 # Fail BP test, meaning that the variance is not constant -> Apply Box-cox transformation
 ```
+### Box-cox transformation
 
 ```{r}
 # Life.Ladder ~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + 
@@ -331,7 +337,7 @@ print(bp_test)
 #    `RegionLatin America and Caribbean` + `RegionSoutheast Asia` + 
 #    `RegionSub-Saharan Africa` + `RegionWestern Europe` + `RegionNorth America and ANZ`
 model_cox = lm(Life.Ladder~ Log.GDP.per.capita + Social.support + Freedom.to.make.life.choices + 
-    Generosity + Perceptions.of.corruption + Positive.affect + `RegionSoutheast Asia` + `RegionLatin America and Caribbean`  , data = data_train)
+    Generosity + Perceptions.of.corruption + Positive.affect + `RegionLatin America and Caribbean`  , data = data_train)
 summary(model_cox)
 boxcox_result <- boxcox(model_cox, plotit = TRUE)
 lambda <- boxcox_result$x
@@ -348,15 +354,31 @@ model_cox = lm(((((Life.Ladder)^best_lambda) - 1)/best_lambda) ~ Log.GDP.per.cap
 summary(model_cox)
 ```
 
-
+## 5. Model Diagnostics
 ```{r}
+# Shapiro test
 shapiro.test(residuals(model_cox))
+par(mfrow=c(1,2))
+
+hist_residuals <- residuals(model_cox)
+hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 100, probability = TRUE)
+
+mean_residuals <- mean(hist_residuals)
+sd_residuals <- sd(hist_residuals)
+curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
+
+qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
+qqline(hist_residuals, col = "red")
+
+# Breusch-Pagan test
 bp_test <- bptest(model_cox)
-durbinWatsonTest(model_cox)
 print(bp_test)
+
+# Durbin-Watson test
+durbinWatsonTest(model_cox)
 ```
 
-## 6,7. Evaluation
+## 6,7. Prediction and evaluation
 Using cross validation k-folds
 ```{r}
 set.seed(1)
@@ -369,10 +391,6 @@ formula <- as.formula(paste0("((Life.Ladder^", best_lambda, " - 1)/", best_lambd
 # Train the model using the training data
 cv_model <- train(formula, data = data_train, method = "lm", trControl = train_control)
 
-# Print the summary of the cross-validated model
-print(cv_model)
-```
-```{r}
 # Predict using the cross-validated model on the test data
 predictions <- predict(cv_model, newdata = data_test)
 
