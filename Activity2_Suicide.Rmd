@@ -67,9 +67,8 @@ attach(data_clean)
 summary(data_clean)
 ```
 
-
 ```{r}
-hist(suicides_no, breaks = 50)
+hist(suicides_no, breaks = 30)
 log_suicides_no <- log(suicides_no + 1) + 1
 
 hist(log_suicides_no, breaks = 30)
@@ -81,23 +80,16 @@ boxplot(log_suicides_no)
 boxplot(year)
 hist(year, breaks = 20)
 ```
-The number of suicides cases seem to increase over the years. The number of suicides cases is the lowest in 2016, which may be due to lack of data.
+The most frequent years in the dataset are between 2000 and 2010, indicating that these years have the highest number of records related to suicides.
 
 ```{r}
 pie(table(sex))
 barplot(table(sex))
 ```
-The suicide cases distributed evenly among male and female.
+The suicide records distributed evenly among male and female.
 
 
-```{r}
-boxplot(log(population))
-hist(log(gdp_per_capita)^2, breaks = 50)
 
-boxplot(log(gdp_for_year))
-hist(log(gdp_for_year), breaks = 20, main = "Histogram of GDP for Year", xlab = "GDP for Year")
-
-```
 
 
 ```{r}
@@ -109,9 +101,24 @@ pie(table(age))
 Based on the observation, the suicides cases distributed evenly among different ages. The number of suicides cases is the lowest in the Generation Z group.
 
 ```{r}
+boxplot(log(population))
+hist(population, breaks = 30)
+hist(log(population), breaks = 30)
 hist(log(population)^2, breaks = 30)
 ```
 
+```{r}
+hist(gdp_per_capita, breaks = 50)
+hist(log(gdp_per_capita), breaks = 50)
+hist(log(gdp_per_capita)^2, breaks = 50)
+```
+
+```{r}
+boxplot(log(gdp_for_year))
+hist(gdp_for_year, breaks = 30)
+hist(log(gdp_for_year), breaks = 30)
+hist(log(gdp_for_year)^2, breaks = 30)
+```
 
 ### Preprocess data
 ```{r}
@@ -211,10 +218,7 @@ abline(h = 3/ length(cooksD), col = "blue") # custom threshold line
 
 ```
 
-```{r}
-summary(data_clean)
-```
-### Visualize the dataset
+### Analyze preprocessed dataset
 ```{r}
 data_clean %>%
   gather(key = "variable", value = "value") %>%
@@ -228,6 +232,10 @@ data_clean %>%
   geom_boxplot() +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+summary(data_clean)
 ```
 
 
