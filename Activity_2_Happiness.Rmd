@@ -54,7 +54,6 @@ data_clean <- na.omit(data_clean)
 data_clean <- unique(data_clean)
 dim(data_clean)
 str(data_clean)
-# 1708 / 19
 ```
 
 ```{r}
