@@ -14,9 +14,10 @@ library(corrplot)
 library(reshape2)
 library(faraway)
 library(caret)
+library(nortest)
 ```
 
-## 1. Import and clean data
+## 1. Import and preprocess data
 
 ```{r}
 data <- read.csv("master.csv", header = TRUE)
@@ -26,10 +27,9 @@ head(data)
 str(data)
 dim(data)
 ```
-### Clean data
 
+### Rename columns
 ```{r}
-# Rename
 data$gdp_for_year <- data$gdp_for_year....
 data$gdp_for_year.... <- NULL
 
@@ -37,74 +37,169 @@ data$gdp_per_capita <- data$gdp_per_capita....
 data$gdp_per_capita.... <- NULL
 ```
 
+### Process missing values
 ```{r}
-# Check for missing values
 missing_values <- sapply(data, function(x) sum(is.na(x)))
 print(missing_values)
 ```
-The missing values of HDI.for.year account for about 70% of the dataset. Therefore, we decide to remove this variable. Moreover, country.year is combination string of country and year, which is redundant; and suicides.100k.pop is suicides / (population / 100k), which includes our dependent variable suicides_no, so we also decide to remove those variables at first.
+The missing values of HDI.for.year account for about 70% of the dataset. Therefore, we decide to remove this variable. Moreover, country.year is combination string of country and year, which is redundant and suicides.100k.pop is suicides / (population / 100k), which includes our dependent variable suicides_no, so we also decide to remove those variables at first.
 
+### Process unnecessary columns
 ```{r}
 data_clean <- data
 data_clean <- dplyr::select(data_clean, -HDI.for.year, -country.year, -suicides.100k.pop)
 ```
 
+### Convert data types
 ```{r}
-# Convert gdp_for_year.... to numeric after removing commas
+# Convert gdp_for_year to numeric after removing commas
 data_clean <- data_clean %>%
 mutate(gdp_for_year = as.numeric(gsub(",", "", gdp_for_year)))
+
 str(data_clean)
 detach(data)
 attach(data_clean)
 ```
+### Process duplicate rows
+```{r}
+duplicate_rows <- data_clean[duplicated(data_clean), ]
+print(duplicate_rows)
+```
+
 
 ### Descriptive statistic
 
 ```{r}
-hist(suicides_no, breaks = 50)
+summary(data_clean)
+```
+
+```{r}
+# Descriptive statistics for the 'suicides_no' column
+hist(suicides_no, breaks = 30)
 log_suicides_no <- log(suicides_no + 1) + 1
+
 hist(log_suicides_no, breaks = 30)
 
 boxplot(log_suicides_no)
 ```
-```{r}
-boxplot(year)
-hist(year, breaks = 20)
-pie(table(year))
-```
-The number of suicides cases seem to increase over the years. The number of suicides cases is the lowest in 2016, which may be due to lack of data.
 
 ```{r}
+# Descriptive statistics for the 'year' column
+boxplot(year)
+hist(year, breaks = 20)
+```
+The most frequent years in the dataset are between 2000 and 2010, indicating that these years have the highest number of records related to suicides.
+
+```{r}
+# Descriptive statistics for 'sex' column
 pie(table(sex))
 barplot(table(sex))
 ```
-The suicide cases distributed evenly among male and female.
+The suicide records distributed evenly among male and female.
 
 
-```{r}
-boxplot(log(population))
-hist(log(gdp_per_capita)^2, breaks = 50)
 
-boxplot(log(gdp_for_year))
-hist(log(gdp_for_year), breaks = 20, main = "Histogram of GDP for Year", xlab = "GDP for Year")
-
-```
 
 
 ```{r}
+# Descriptive Statistics for 'generation' and 'age'
 barplot(table(generation))
 pie(table(generation))
 barplot(table(age))
 pie(table(age))
 ```
-Based on the observation, the suicides cases distributed evenly among different ages. The number of suicides cases is the lowest in the Generation Z group.
+Based on the observation, the suicides cases distributed evenly among different ages. The number of suicides records is the lowest in the Generation Z group.
 
 ```{r}
+# Descriptive statistics for 'population'
+boxplot(log(population))
+hist(population, breaks = 30)
+hist(log(population), breaks = 30)
 hist(log(population)^2, breaks = 30)
+```
+
+```{r}
+# Descriptive statistics for 'gdp_per_capita'
+hist(gdp_per_capita, breaks = 50)
+hist(log(gdp_per_capita), breaks = 50)
+hist(log(gdp_per_capita)^2, breaks = 50)
+```
+
+```{r}
+# Descriptive statistics for 'gdp_for_year'
+boxplot(log(gdp_for_year))
+hist(gdp_for_year, breaks = 30)
+hist(log(gdp_for_year), breaks = 30)
+hist(log(gdp_for_year)^2, breaks = 30)
+```
+### Relationship between response variable and predictors
+```{r}
+log_suicides_no <- log(suicides_no + 1) + 1
+log_population_sq <- log(population)^2
+log_gdp_per_capita_sq <- log(gdp_per_capita)^2
+log_gdp_for_year <- log(gdp_for_year)
+```
+
+```{r}
+plot(log_suicides_no ~ log_population_sq)
+plot(log_suicides_no ~ log_gdp_per_capita_sq)
+plot(log_suicides_no ~ log_gdp_for_year)
+```
+
+```{r}
+ggplot(data_clean, aes(x = age, y = log_suicides_no, fill = age)) +
+  geom_boxplot() +
+  scale_fill_viridis_d() +  # Use viridis color palette
+  labs(title = "log_suicides_no by age",
+       y = "log_suicides_no",
+       x = NULL) +  # Remove x-axis label as it's redundant
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    legend.position = "none",  # Remove legend as colors are already on x-axis
+    plot.title = element_text(hjust = 0.5, size = 16),
+    axis.title.y = element_text(size = 12)
+  )
+
+ggplot(data_clean, aes(x = generation, y = log_suicides_no, fill = generation)) +
+  geom_boxplot() +
+  scale_fill_viridis_d() +  # Use viridis color palette
+  labs(title = "log_suicides_no by generation",
+       y = "log_suicides_no",
+       x = NULL) +  # Remove x-axis label as it's redundant
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    legend.position = "none",  # Remove legend as colors are already on x-axis
+    plot.title = element_text(hjust = 0.5, size = 16),
+    axis.title.y = element_text(size = 12)
+  )
+
+ggplot(data_clean, aes(x = sex, y = log_suicides_no, fill = sex)) +
+  geom_boxplot() +
+  scale_fill_viridis_d() +  # Use viridis color palette
+  labs(title = "log_suicides_no by sex",
+       y = "log_suicides_no",
+       x = NULL) +  # Remove x-axis label as it's redundant
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    legend.position = "none",  # Remove legend as colors are already on x-axis
+    plot.title = element_text(hjust = 0.5, size = 16),
+    axis.title.y = element_text(size = 12)
+  )
+
+boxplot(log_suicides_no ~ year)
 ```
 
 
 ### Preprocess data
+```{r}
+# Process 'suicides_no' column
+data_clean$log_suicides_no <- log(suicides_no + 1) + 1
+data_clean$suicides_no <- NULL
+```
+
 
 ```{r}
 # Process 'gdp_per_capita' column
@@ -125,12 +220,6 @@ data_clean$transform_gdp_for_year <- log(gdp_for_year)
 data_clean$gdp_for_year <- NULL
 ```
 
-```{r}
-# Process 'suicides_no' column
-data_clean$log_suicides_no <- log(suicides_no + 1) + 1
-data_clean$suicides_no <- NULL
-```
-
 
 ```{r}
 # Process 'year' column
@@ -140,17 +229,7 @@ data_clean$year <- data_clean$year - 1985 + 1
 
 ```{r}
 # # Create dummy variables for the 'country' column
-# dummy_vars <- model.matrix(~ country, data = data_clean)
-# 
-# # Remove the intercept column
-# dummy_vars <- dummy_vars[, -1]
-# 
-# # Combine the dummy variables with the original data frame
-# data_clean <- cbind(data_clean, dummy_vars)
-# 
-# data_clean <- dplyr::select(data_clean, -country)
-# str(data_clean)
-# Define country groups based on continents or regions
+
 data_clean$regionEurope <- ifelse(data_clean$country %in% c("Austria", "Iceland", "Netherlands", "Belgium", "Bulgaria", "France", "Greece", "Ireland", "Italy", "Luxembourg", "Malta", "Norway", "Portugal", "Romania", "Spain", "Sweden", "United Kingdom", "Ukraine", "Finland", "Switzerland", "Serbia", "Slovenia", "Slovakia", "Albania", "Denmark", "Estonia", "Latvia", "Lithuania", "Belarus", "Croatia", "Czech Republic", "Germany", "Hungary", "Poland", "San Marino", "Bosnia and Herzegovina"), 1, 0)
 
 data_clean$regionAsia <- ifelse(data_clean$country %in% c("Israel", "Japan", "Republic of Korea", "Singapore", "Turkmenistan", "Thailand", "Russian Federation", "Kazakhstan", "Kyrgyzstan", "Armenia", "Azerbaijan", "Philippines", "Cyprus", "Qatar", "Sri Lanka", "Maldives", "Turkey", "United Arab Emirates", "Oman", "Bahrain", "Uzbekistan", "Georgia", "Macau"), 1, 0)
@@ -190,26 +269,48 @@ data_clean$age <- NULL
 #The other generation would be 75+ years
 ```
 
-
-```{r}
-str(data_clean)
-```
-```{r}
-mod <- lm(log_suicides_no ~., data = data_clean)
-summary(mod)
-```
 ```{r}
 # Calculate Cook's distance
-cooksD <- cooks.distance(mod)
-influential <- cooksD[(cooksD > (4/length(cooksD)))]
+model <- lm(log_suicides_no ~ ., data = data_clean)
+cooksD <- cooks.distance(model)
+
+# Identify influential observations
+influential <- cooksD[(cooksD > (3/length(cooksD)))]
+
+# Extract the indices of influential observations
 outliers <- as.numeric(names(influential))
-```
-
-
-```{r}
 
 # Remove influential observations to clean the data
 data_clean <- data_clean[-outliers, ]
+```
+
+```{r}
+plot(cooksD, type = "h", main = "Cook's Distance", ylab = "Cook's Distance")
+abline(h = 4 / length(cooksD), col = "red") # original threshold line
+abline(h = 3/ length(cooksD), col = "blue") # custom threshold line
+
+```
+
+### Analyze preprocessed dataset
+```{r}
+# Visualize preprocessed dataset
+data_clean %>%
+  gather(key = "variable", value = "value") %>%
+  ggplot(aes(x = value)) +
+  facet_wrap(~ variable, scales = "free") +
+  geom_histogram(bins = 30) +
+  theme_minimal()
+data_clean %>%
+  gather(key = "variable", value = "value") %>%
+  ggplot(aes(x = variable, y = value)) +
+  geom_boxplot() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+# Descriptive statistics for the preprocessed dataset
+summary(data_clean)
 ```
 
 
@@ -228,49 +329,33 @@ attach(data_train)
 
 ### Check multicollinearity
 
-We consider correlation matrix
-```{r}
-cor_matrix <- cor(data_train)
-cor_matrix
-```
-heat map:
-```{r}
-# corrplot(cor_matrix, method = "color", type = "upper", 
-#          tl.col = "black", tl.srt = 45, addCoef.col = "black")
-# 
-# # Convert the correlation matrix to long format for ggplot2
-# cor_matrix_melted <- melt(cor_matrix)
-# 
-# # Visualize with ggplot2
-# ggplot(data = cor_matrix_melted, aes(x = Var1, y = Var2, fill = value)) +
-#   geom_tile(color = "white") +
-#   scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
-#                        midpoint = 0, limit = c(-1, 1), space = "Lab", 
-#                        name = "Correlation") +
-#   theme_minimal() + 
-#   theme(axis.text.x = element_text(angle = 45, vjust = 1, 
-#                                    size = 12, hjust = 1)) +
-#   coord_fixed()
-```
 
 ```{r}
 model = lm(log_suicides_no ~ ., data = data_train)
 summary(model)
-vif(model)
+car::vif(model)
 ```
 
 ```{r}
 model = lm(log_suicides_no ~ . -transform_gdp_for_year , data = data_train)
 summary(model)
-vif(model)
+car::vif(model)
 ```
+
+```{r}
+cor(data_train$log_suicides_no, data_train$regionEurope)
+model_regionEurope = lm(regionEurope ~ . -transform_gdp_for_year -log_suicides_no, data = data_train)
+summary(model_regionEurope)
+```
+
+
 ```{r}
 model = lm(log_suicides_no ~ . -transform_gdp_for_year -regionEurope, data = data_train)
 summary(model)
-vif(model)
+car::vif(model)
 ```
 
-### Variable selection
+### Variable selection (Stepwise)
 
 ```{r}
 modFull = lm(log_suicides_no ~ . -transform_gdp_for_year -regionEurope, data = data_train)
@@ -279,14 +364,8 @@ modInter = lm(log_suicides_no ~ year + transform_population + regionAsia + regio
 ```
 
 ```{r}
-# model2 = MASS::stepAIC(modInter, direction = "both", scope = list(lower = modZero, upper = modFull), k = 2)
-# model3 = MASS::stepAIC(modInter, direction = "both", scope = list(lower = modZero, upper = modFull), k = log(nrow(data_train)))
-```
-
-```{r}
 modelAIC = MASS::stepAIC(modFull, direction = "backward", scope = list(lower = modZero, upper = modFull), k = 2)
 ```
-
 
 ```{r}
 summary(modelAIC)
@@ -294,11 +373,15 @@ summary(modelAIC)
 
 ## 4. Hypothesis testing
 
+### Durbin_Watson test for autocorrelation
+```{r}
+lmtest::dwtest(modelAIC)
+```
 ### Shapiro-Wilk test for normality
 
 ```{r}
 # Use Shapiro-Wilk test to test for normality of the residuals
-set.seed(123) # For reproducibility
+set.seed(22) # For reproducibility
 subsample_residuals <- sample(residuals(modelAIC), size = 5000)
 shapiro.test(subsample_residuals)
 ```
@@ -318,6 +401,7 @@ curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRU
 qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
 qqline(hist_residuals, col = "red")
 ```
+
 
 ### Studentized Breusch-Pagan test for heteroscedasticity
 ```{r}
@@ -341,13 +425,22 @@ print(best_lambda)
 ```{r}
 # Build the final model with Box-Cox transformation
 best_lambda = 1.5
-model_cox = lm((((data_train$log_suicides_no^best_lambda) - 1)/best_lambda) ~ . -transform_gdp_for_year -regionEurope -year, data = data_train)
+model_cox = lm((((data_train$log_suicides_no^best_lambda) - 1)/best_lambda) ~ 
+    year + transform_gdp_per_capita + 
+    transform_population + regionAsia + regionAfrica + regionNorthAmerica + 
+    regionSouthAmerica + sexMale + geneX + geneMillenials + geneBoomers + 
+    geneSilent + Age15to24 + Age25to34 + Age35to54 + Age55to74, data = data_train)
 summary(model_cox)
 ```
 
 ```{r}
+lmtest::dwtest(model_cox)
+```
+
+
+```{r}
 # Use Shapiro-Wilk test to test for normality of the residuals
-set.seed(123) # For reproducibility
+set.seed(22) # For reproducibility
 subsample_residuals <- sample(residuals(model_cox), size = 5000)
 shapiro.test(subsample_residuals)
 ```
@@ -368,8 +461,57 @@ qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
 qqline(hist_residuals, col = "red")
 ```
 
-### Studentized Breusch-Pagan test for heteroscedasticity
+
 ```{r}
+# Studentized Breusch-Pagan test for heteroscedasticity
 bp_test <- lmtest::bptest(model_cox)
 print(bp_test)
+```
+The BP statistic has decreased from 3230.76 to 2943.80 after the Box-Cox transformation. This suggests that the transformation has helped reduce heteroscedasticity, but it has not completely eliminated it.
+
+Despite the decrease in the BP statistic, the p-value remains extremely small, indicating that heteroscedasticity is still a significant issue. The transformation has not fully addressed the non-constant variance in the residuals.
+
+## 6. Prediction
+
+###Using cross validation k-folds
+```{r}
+set.seed(1)  
+# Define a train control with k-fold cross-validation
+train_control <- trainControl(method = "cv", number = 10)  # 10-fold cross-validation
+
+# Define the formula for the model
+formula <- as.formula(paste0("((log_suicides_no^", best_lambda, " - 1)/", best_lambda, ") ~  
+    year + transform_gdp_per_capita + 
+    transform_population + regionAsia + regionAfrica + regionNorthAmerica + 
+    regionSouthAmerica + sexMale + geneX + geneMillenials + geneBoomers + 
+    geneSilent + Age15to24 + Age25to34 + Age35to54 + Age55to74"))
+
+# Train the model using the training data
+cv_model <- train(formula, data = data_train, method = "lm", trControl = train_control)
+
+```
+
+```{r}
+# Predict using the cross-validated model on the test data
+predictions_log <- predict(cv_model, newdata = data_test)
+
+# Calculate performance metrics on the test data
+actual_values <- exp(data_test$log_suicides_no - 1) -1
+predict_values <- round(exp((ifelse(predictions_log < 0, 0, predictions_log)  * best_lambda + 1)^(1/best_lambda) -1) -1, 2)
+results <- data.frame(
+  Actual = actual_values,
+  Predicted = predict_values
+)
+
+# Print the results
+print(results)
+```
+
+## 7. Evaluation
+```{r}
+# Calculate and print RMSE and R-squared
+rmse <- sqrt(mean((results$Actual - results$Predicted)^2))
+r_squared <- cor(results$Actual, results$Predicted)^2
+cat("RMSE:", rmse, "\n")
+cat("R-squared:", r_squared, "\n")
 ```
