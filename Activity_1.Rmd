@@ -80,21 +80,73 @@ attach(data_clean)
 
 ### Descriptive statistic
 ```{r}
-# Visualize the dataset
+# Visualize the histogram
 data_clean %>%
   gather(key = "variable", value = "value") %>%
   ggplot(aes(x = value)) +
   facet_wrap(~ variable, scales = "free") +
   geom_histogram(bins = 30) +
   theme_minimal()
-data_clean %>%
-  gather(key = "variable", value = "value") %>%
-  ggplot(aes(x = variable, y = value)) +
-  geom_boxplot() +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
+```{r}
+ggplot(data_clean, aes(y = acceleration)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Acceleration", y = " ") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
 
+ggplot(data_clean, aes(y = displacement)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Displacement", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+
+ggplot(data_clean, aes(y = horsepower)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Horsepower", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+
+ggplot(data_clean, aes(y = mgp)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "MGP", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+ggplot(data_clean, aes(y = (log10(mgp))^2)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Log MGP", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+ggplot(data_clean, aes(y = weight)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Weight", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+```
 As the data has almost no outliers, then we don't need to process them.
 
 ```{r}
