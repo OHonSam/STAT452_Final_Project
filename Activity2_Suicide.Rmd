@@ -132,6 +132,66 @@ hist(gdp_for_year, breaks = 30)
 hist(log(gdp_for_year), breaks = 30)
 hist(log(gdp_for_year)^2, breaks = 30)
 ```
+### Relationship between response variable and predictors
+```{r}
+log_suicides_no <- log(suicides_no + 1) + 1
+log_population_sq <- log(population)^2
+log_gdp_per_capita_sq <- log(gdp_per_capita)^2
+log_gdp_for_year <- log(gdp_for_year)
+```
+
+```{r}
+plot(log_suicides_no ~ log_population_sq)
+plot(log_suicides_no ~ log_gdp_per_capita_sq)
+plot(log_suicides_no ~ log_gdp_for_year)
+```
+
+```{r}
+ggplot(data_clean, aes(x = age, y = log_suicides_no, fill = age)) +
+  geom_boxplot() +
+  scale_fill_viridis_d() +  # Use viridis color palette
+  labs(title = "log_suicides_no by age",
+       y = "log_suicides_no",
+       x = NULL) +  # Remove x-axis label as it's redundant
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    legend.position = "none",  # Remove legend as colors are already on x-axis
+    plot.title = element_text(hjust = 0.5, size = 16),
+    axis.title.y = element_text(size = 12)
+  )
+
+ggplot(data_clean, aes(x = generation, y = log_suicides_no, fill = generation)) +
+  geom_boxplot() +
+  scale_fill_viridis_d() +  # Use viridis color palette
+  labs(title = "log_suicides_no by generation",
+       y = "log_suicides_no",
+       x = NULL) +  # Remove x-axis label as it's redundant
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    legend.position = "none",  # Remove legend as colors are already on x-axis
+    plot.title = element_text(hjust = 0.5, size = 16),
+    axis.title.y = element_text(size = 12)
+  )
+
+ggplot(data_clean, aes(x = sex, y = log_suicides_no, fill = sex)) +
+  geom_boxplot() +
+  scale_fill_viridis_d() +  # Use viridis color palette
+  labs(title = "log_suicides_no by sex",
+       y = "log_suicides_no",
+       x = NULL) +  # Remove x-axis label as it's redundant
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    legend.position = "none",  # Remove legend as colors are already on x-axis
+    plot.title = element_text(hjust = 0.5, size = 16),
+    axis.title.y = element_text(size = 12)
+  )
+
+boxplot(log_suicides_no ~ year)
+```
+
 
 ### Preprocess data
 ```{r}
