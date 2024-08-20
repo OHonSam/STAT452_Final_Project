@@ -193,7 +193,7 @@ boxplot(log_suicides_no ~ year)
 ```
 
 
-### Preprocess data
+### Normalize variables
 ```{r}
 # Process 'suicides_no' column
 data_clean$log_suicides_no <- log(suicides_no + 1) + 1
@@ -221,11 +221,13 @@ data_clean$gdp_for_year <- NULL
 ```
 
 
+### Process variables
+
 ```{r}
 # Process 'year' column
+max(data_clean$year)
 data_clean$year <- data_clean$year - 1985 + 1
 ```
-
 
 ```{r}
 # # Create dummy variables for the 'country' column
@@ -269,6 +271,7 @@ data_clean$age <- NULL
 #The other generation would be 75+ years
 ```
 
+### Process outliers
 ```{r}
 # Calculate Cook's distance
 model <- lm(log_suicides_no ~ ., data = data_clean)
