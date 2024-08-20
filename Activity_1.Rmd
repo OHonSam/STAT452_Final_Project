@@ -16,29 +16,34 @@ library(caret)
 library(lmtest)
 ```
 
-## 1. Import and clean data
+
+## 1. Import and preprocess data
+
+### Import dataset
 
 ```{r}
 data <- read.csv("auto_mpg.csv", header = TRUE, sep = ";")
 attach(data)
 head(data)
 dim(data)
+str(data)
 ```
-
+### Process missing values
 ```{r}
 # Replace "?" with NA in the horsepower column
 data$horsepower[data$horsepower == "?"] <- NA
 ```
 
 ```{r}
-# Convert horsepower to numeric (it was read as a factor due to "?")
+# Convert horsepower data type to numeric 
 data$horsepower <- as.numeric(as.character(data$horsepower))
 ```
 
 ```{r}
-# Check for missing values
+# Count the number of missing values
 missing_values <- sapply(data, function(x) sum(is.na(x)))
 print(missing_values)
+str(data)
 ```
 
 ```{r}
@@ -54,23 +59,235 @@ data_clean <- na.omit(data)
 # data$horsepower[is.na(data$horsepower)] <- mean(data$horsepower, na.rm = TRUE)
 ```
 
+### Process duplicate rows
 ```{r}
-# Check duplicate
 # Identify duplicate rows based on all columns
 duplicates <- duplicated(data_clean)
 print(data_clean[duplicates, ])
 ```
 There is no duplicate value.
 
+### Process unnecessary variables
+
 ```{r}
-# remove car_name column in data_clean
+# Remove car_name column in data_clean
 data_clean <- dplyr::select(data_clean, -car_name)
 str(data_clean)
 detach(data)
 attach(data_clean)
 ```
 
+
 ### Descriptive statistic
+```{r}
+# Visualize the histogram
+data_clean %>%
+  gather(key = "variable", value = "value") %>%
+  ggplot(aes(x = value)) +
+  facet_wrap(~ variable, scales = "free") +
+  geom_histogram(bins = 30) +
+  theme_minimal()
+```
+```{r}
+ggplot(data_clean, aes(y = acceleration)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Acceleration", y = " ") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+
+ggplot(data_clean, aes(y = displacement)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Displacement", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+
+ggplot(data_clean, aes(y = horsepower)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Horsepower", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+
+ggplot(data_clean, aes(y = mgp)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "MGP", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+ggplot(data_clean, aes(y = (log10(mgp))^2)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Log MGP", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+ggplot(data_clean, aes(y = weight)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Weight", y = "") + 
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),  # Center the title horizontally
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14)
+  )
+```
+As the data has almost no outliers, then we don't need to process them.
+
+```{r}
+summary(data_clean)
+```
+
+```{r}
+pie(table(origin))
+barplot(table(origin))
+
+# Calculate the frequency of each 'origin'
+origin_counts <- table(data$origin)
+
+# Calculate the proportions
+origin_proportions <- prop.table(origin_counts)
+
+# Print the proportions
+print(origin_proportions)
+```
+
+
+```{r}
+# Descriptive statistics for 'model_year'
+pie(table(model_year))
+plot(table(model_year))
+
+## Calculate the frequency of each 'origin'
+origin_counts <- table(data$model_year)
+
+## Calculate the proportions
+origin_proportions <- prop.table(origin_counts)
+
+## Print the proportions
+print(origin_proportions)
+```
+
+```{r}
+# Descriptive statistics for 'cylinders'
+pie(table(cylinders))
+barplot(table(cylinders))
+```
+
+The product from North American accounted for the highest percentage while the others (Europe, Asia) accounted for equally percentage.
+
+model_year distribution is approximately distributed equally through years.
+
+```{r}
+# Descriptive statistics for 'mgp'
+hist(mgp, breaks = 50)
+```
+The mgp distribution is right skewed. Hence, we process this by taking log(mgp)^2
+
+```{r}
+log_mgp = log10(data_clean$mgp)
+hist(log_mgp, breaks = 25)
+
+log_mgp_square = (log10(data_clean$mgp))^2
+hist(log_mgp_square, breaks = 25)
+
+data_clean$log_mgp_square <- log_mgp_square
+```
+
+
+```{r}
+# Boxplot of 'log_mgp_square' by 'origin'
+boxplot(log_mgp_square ~ origin)
+```
+The highest mgp consumption coming from Asia countries while the lowest one coming from North America. It indicates that the engines from North America might be better than the other areas.
+
+```{r}
+# Boxplot of 'log_mgp_square' by 'model_year'
+boxplot(log_mgp_square ~ model_year)
+```
+There is a rising trend of mgp through out the period from 1970 to 1982.
+
+```{r}
+# Boxplot of 'log_mgp_square' by 'cylinders'
+boxplot(log_mgp_square ~ cylinders)
+# Boxplot of 'horsepower' by 'cylinders'
+boxplot(horsepower ~ cylinders, data = data_clean)
+```
+Overall, engines having more cylinders seems to be stronger while consuming less fuel.
+
+```{r}
+# Boxplot of 'displacement' by 'cylinders'
+boxplot(displacement ~ cylinders)
+```
+The engines having more cylinders seem to have larger displacement.
+
+```{r}
+# Scatter plot of 'log_mgp_square' vs. 'horsepower'
+plot(log_mgp_square ~ horsepower)
+# Scatter plot of 'log_mgp_square' vs. 'displacement'
+plot(log_mgp_square ~ displacement)
+# Scatter plot of 'log_mgp_square' vs. 'weight'
+plot(log_mgp_square ~ weight)
+# Scatter plot of 'log_mgp_square' vs. 'acceleration'
+plot(log_mgp_square ~ acceleration)
+```
+Overall, there is a correlation between mgp and horsepower, displacement, weight while there is no correlation between mgp and acceleration.
+
+
+### Process categorical variables
+```{r}
+min(model_year)
+max(model_year)
+# Convert year from 1970-1982 to 1-13
+data_clean$model_year <- data_clean$model_year - 70 + 1
+```
+
+```{r}
+# Create dummy variables for 'origin' column
+data_clean$north_american <- ifelse(data_clean$origin == 1, 1, 0)
+data_clean$europe <- ifelse(data_clean$origin == 2, 1, 0)
+data_clean$origin <- NULL
+```
+
+```{r}
+str(data_clean)
+```
+
+### Process outliers
+
+```{r}
+# Function to count outliers
+count_outliers <- function(x) {
+  Q1 <- quantile(x, 0.25)
+  Q3 <- quantile(x, 0.75)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  sum(x < lower_bound | x > upper_bound)
+}
+
+# Count outliers for each variable
+outlier_counts <- sapply(data_clean, count_outliers)
+outlier_counts_df <- data.frame(variable = names(outlier_counts), outliers = outlier_counts)
+
+# Print the number of outliers for each variable
+print(outlier_counts_df)
+```
 ```{r}
 # Visualize the dataset
 data_clean %>%
@@ -87,87 +304,33 @@ data_clean %>%
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-As the data has almost no outliers, then we don't need to process them.
+```{r}
+boxplot(data_clean$horsepower, main="Boxplot of horsepower")
+outliers <- boxplot.stats(data_clean$horsepower)$out
+print(outliers)
+
+```
+
+```{r}
+# Filtering data for rows with outliers in 'mpg'
+
+outlier_data <- data_clean[data_clean$horsepower %in% outliers, ]
+print(outlier_data)
+
+```
+
+
+```{r}
+# With outliers
+summary(data_clean$horsepower)
+
+# Without outliers
+data_no_outliers <- data_clean[!data_clean$horsepower %in% outliers, ]
+summary(data_no_outliers$horsepower)
+```
 
 ```{r}
 summary(data_clean)
-```
-
-```{r}
-pie(table(origin))
-barplot(table(origin))
-```
-```{r}
-pie(table(model_year))
-```
-```{r}
-pie(table(cylinders))
-barplot(table(cylinders))
-```
-
-The product from North American accounted for the highest percentage while the others (Europe, Asia) accounted for equally percentage.
-
-model_year distribution is approximately distributed equally through years.
-
-```{r}
-hist(mgp, breaks = 50)
-```
-The mgp distribution is right skewed. Hence, we process this by taking log(mgp)^2
-
-```{r}
-log_mgp_square = (log10(data_clean$mgp))^2
-data_clean$log_mgp_square <- log_mgp_square
-hist(log_mgp_square, breaks = 25)
-```
-
-
-```{r}
-boxplot(log_mgp_square ~ origin)
-```
-The highest mgp consumption coming from Asia countries while the lowest one coming from North America. It indicates that the engines from North America might be better than the other areas.
-
-```{r}
-boxplot(log_mgp_square ~ model_year)
-```
-There is a rising trend of mgp through out the period from 1970 to 1982.
-
-```{r}
-boxplot(log_mgp_square ~ cylinders)
-boxplot(horsepower ~ cylinders, data = data_clean)
-```
-Overall, engines having more cylinders seems to be stronger while consuming less fuel.
-
-```{r}
-boxplot(displacement ~ cylinders)
-```
-The engines having more cylinders seem to have larger displacement.
-
-```{r}
-plot(log_mgp_square ~ horsepower)
-plot(log_mgp_square ~ displacement)
-plot(log_mgp_square ~ weight)
-plot(log_mgp_square ~ acceleration)
-```
-Overall, there is a correlation between mgp and horsepower, displacement, weight while there is no correlation between mgp and acceleration.
-
-### Create dummy variable
-```{r}
-min(model_year)
-max(model_year)
-# Convert year from 1970-1982 to 1-13
-data_clean$model_year <- data_clean$model_year - 1970 + 1
-```
-
-
-```{r}
-# Create dummy variables for 'origin' column
-data_clean$north_american <- ifelse(data_clean$origin == 1, 1, 0)
-data_clean$europe <- ifelse(data_clean$origin == 2, 1, 0)
-data_clean$origin <- NULL
-```
-
-```{r}
-str(data_clean)
 ```
 
 ## 2. Split data to train and test
@@ -305,20 +468,24 @@ summary(model2)
 summary(model3)
 anova(model2, model3)
 ```
--p_value >< correlation
--R-square change
--plot
-=> remove acceleration => model3
+p_value = 0.045 < $\alpha$ => Choose model 2 (AIC model) 
+
+### Durbin-Watson test for autocorrelation
+```{r}
+durbinWatsonTest(model2)
+```
+$H_0$: There is no autocorrelation in the residuals
+$H_a$: There is autocorrelation in the residuals
 
 ### Shapiro-Wilk test for normality
 ```{r}
 # Use Shapiro-Wilk test to test for normality of the residuals
-shapiro.test(residuals(model3))
+shapiro.test(residuals(model2))
 
 # Plot residuals to visually check for normality
 par(mfrow=c(1,2))
 
-hist_residuals <- residuals(model3)
+hist_residuals <- residuals(model2)
 hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 30, probability = TRUE)
 
 mean_residuals <- mean(hist_residuals)
@@ -343,11 +510,11 @@ $H_0$: The residuals have constant variance
 
 $H_a$: The residuals do not have constant variance
 
-p-value = 0.005774 \< $\alpha$ = 0.05, we have enough evidence to reject the null hypothesis, which suggests that the residuals don't have constant variance.
+p-value = 0.005774 < $\alpha$ = 0.05, we have enough evidence to reject the null hypothesis, which suggests that the residuals don't have constant variance.
 
 ### Box-Cox Transformation
 ```{r}
-boxcox_result <- boxcox(model3, plotit = TRUE)
+boxcox_result <- boxcox(model2, plotit = TRUE)
 lambda <- boxcox_result$x
 log_likelihood <- boxcox_result$y
 
@@ -358,13 +525,16 @@ best_lambda <- lambda[which.max(log_likelihood)]
 print(best_lambda)
 ```
 
-
 ```{r}
 # Build the final model with Box-Cox transformation
 best_lambda = 0.5
-model_cox = lm((((data_train$log_mgp_square^best_lambda) - 1)/best_lambda) ~ data_train$weight + data_train$model_year + data_train$north_american)
+model_cox = lm((((data_train$log_mgp_square^best_lambda) - 1)/best_lambda) ~ data_train$weight + data_train$model_year + data_train$north_american + data_train$acceleration)
 summary(model_cox)
 ```
+```{r}
+durbinWatsonTest(model_cox)
+```
+
 ```{r}
 # Check normality of residuals
 residuals <- residuals(model_cox)
@@ -373,11 +543,7 @@ residuals <- residuals(model_cox)
 shapiro_test <- shapiro.test(residuals)
 print(shapiro_test)
 
-## Q-Q plot
-qqnorm(residuals)
-qqline(residuals, col = "red")
-
-## Plot residuals to visually check for normality
+# Plot residuals to visually check for normality
 par(mfrow=c(1,2))
 
 hist_residuals <- residuals(model_cox)
@@ -386,6 +552,9 @@ hist(hist_residuals, main = "Residuals Histogram", xlab = "Residuals", breaks = 
 mean_residuals <- mean(hist_residuals)
 sd_residuals <- sd(hist_residuals)
 curve(dnorm(x, mean = mean_residuals, sd = sd_residuals), col = "red", add = TRUE)
+
+qqnorm(hist_residuals, main = "Q-Q Plot of Residuals")
+qqline(hist_residuals, col = "red")
 ```
 
 $H_0$: the residuals are normally distributed
@@ -410,9 +579,9 @@ p-value = 0.1222 \> $\alpha$ = 0.05, we don't have enough evidence to reject the
 summary(model_cox)
 ```
 ### Quantile
-- 25% of residuals are less than -0.06215  
+- 25% of residuals are less than -0.06215
 - 50% of residuals are above 0.00484, 50% of residuals are below 0.00484  
-- 75% of residuals are less than 0.06370  
+- 75% of residuals are less than 0.06370
 
 ### Coefficent of predictors
 Estimated Regression model: $\hat{\frac{(log\_mgp\_square)^{\lambda_{best}} - 1}{\lambda_{best}}} = \hat\beta_0 + \hat\beta_1 \cdot weight + \hat \beta_2 \cdot model\_year + \hat\beta_3 \cdot north\_american$
@@ -443,27 +612,26 @@ formula <- as.formula(paste0("((log_mgp_square^", best_lambda, " - 1)/", best_la
 
 # Train the model using the training data
 cv_model <- train(formula, data = data_train, method = "lm", trControl = train_control)
-
-# Print the summary of the cross-validated model
-print(cv_model)
 ```
+
 ```{r}
 # Predict using the cross-validated model on the test data
-predictions <- predict(cv_model, newdata = data_test)
+predictions_log <- predict(cv_model, newdata = data_test)
 
 # Calculate performance metrics on the test data
-actual_values <- (data_test$log_mgp_square^best_lambda - 1) / best_lambda
+actual_values <- 10^(sqrt(data_test$log_mgp_square))
+predict_values <- 10^(sqrt((predictions_log * best_lambda + 1)^(1/best_lambda)))
 results <- data.frame(
-  Actual = actual_values,
-  Predicted = predictions
+  actual_mpg = actual_values,
+  predict_mpg = predict_values
 )
 
 # Print the results
 print(results)
 
 # Calculate and print RMSE and R-squared
-rmse <- sqrt(mean((results$Actual - results$Predicted)^2))
-r_squared <- cor(results$Actual, results$Predicted)^2
+rmse <- sqrt(mean((results$actual_mpg - results$predict_mpg)^2))
+r_squared <- cor(results$actual_mpg, results$predict_mpg)^2
 cat("RMSE:", rmse, "\n")
 cat("R-squared:", r_squared, "\n")
 ```
