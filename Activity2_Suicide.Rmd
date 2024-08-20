@@ -28,10 +28,8 @@ str(data)
 dim(data)
 ```
 
-### Clean data
-
+### Rename columns
 ```{r}
-# Rename
 data$gdp_for_year <- data$gdp_for_year....
 data$gdp_for_year.... <- NULL
 
@@ -39,20 +37,22 @@ data$gdp_per_capita <- data$gdp_per_capita....
 data$gdp_per_capita.... <- NULL
 ```
 
+### Process missing values
 ```{r}
-# Check for missing values
 missing_values <- sapply(data, function(x) sum(is.na(x)))
 print(missing_values)
 ```
 The missing values of HDI.for.year account for about 70% of the dataset. Therefore, we decide to remove this variable. Moreover, country.year is combination string of country and year, which is redundant and suicides.100k.pop is suicides / (population / 100k), which includes our dependent variable suicides_no, so we also decide to remove those variables at first.
 
+### Process unnecessary columns
 ```{r}
 data_clean <- data
 data_clean <- dplyr::select(data_clean, -HDI.for.year, -country.year, -suicides.100k.pop)
 ```
 
+### Convert data types
 ```{r}
-# Convert gdp_for_year.... to numeric after removing commas
+# Convert gdp_for_year to numeric after removing commas
 data_clean <- data_clean %>%
 mutate(gdp_for_year = as.numeric(gsub(",", "", gdp_for_year)))
 
@@ -60,6 +60,12 @@ str(data_clean)
 detach(data)
 attach(data_clean)
 ```
+### Process duplicate rows
+```{r}
+duplicate_rows <- data_clean[duplicated(data_clean), ]
+print(duplicate_rows)
+```
+
 
 ### Descriptive statistic
 
@@ -68,6 +74,7 @@ summary(data_clean)
 ```
 
 ```{r}
+# Descriptive statistics for the 'suicides_no' column
 hist(suicides_no, breaks = 30)
 log_suicides_no <- log(suicides_no + 1) + 1
 
@@ -77,12 +84,14 @@ boxplot(log_suicides_no)
 ```
 
 ```{r}
+# Descriptive statistics for the 'year' column
 boxplot(year)
 hist(year, breaks = 20)
 ```
 The most frequent years in the dataset are between 2000 and 2010, indicating that these years have the highest number of records related to suicides.
 
 ```{r}
+# Descriptive statistics for 'sex' column
 pie(table(sex))
 barplot(table(sex))
 ```
@@ -93,14 +102,16 @@ The suicide records distributed evenly among male and female.
 
 
 ```{r}
+# Descriptive Statistics for 'generation' and 'age'
 barplot(table(generation))
 pie(table(generation))
 barplot(table(age))
 pie(table(age))
 ```
-Based on the observation, the suicides cases distributed evenly among different ages. The number of suicides cases is the lowest in the Generation Z group.
+Based on the observation, the suicides cases distributed evenly among different ages. The number of suicides records is the lowest in the Generation Z group.
 
 ```{r}
+# Descriptive statistics for 'population'
 boxplot(log(population))
 hist(population, breaks = 30)
 hist(log(population), breaks = 30)
@@ -108,12 +119,14 @@ hist(log(population)^2, breaks = 30)
 ```
 
 ```{r}
+# Descriptive statistics for 'gdp_per_capita'
 hist(gdp_per_capita, breaks = 50)
 hist(log(gdp_per_capita), breaks = 50)
 hist(log(gdp_per_capita)^2, breaks = 50)
 ```
 
 ```{r}
+# Descriptive statistics for 'gdp_for_year'
 boxplot(log(gdp_for_year))
 hist(gdp_for_year, breaks = 30)
 hist(log(gdp_for_year), breaks = 30)
@@ -220,6 +233,7 @@ abline(h = 3/ length(cooksD), col = "blue") # custom threshold line
 
 ### Analyze preprocessed dataset
 ```{r}
+# Visualize preprocessed dataset
 data_clean %>%
   gather(key = "variable", value = "value") %>%
   ggplot(aes(x = value)) +
@@ -235,6 +249,7 @@ data_clean %>%
 ```
 
 ```{r}
+# Descriptive statistics for the preprocessed dataset
 summary(data_clean)
 ```
 
